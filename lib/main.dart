@@ -9,6 +9,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
   Hive.registerAdapter(TaskAdapter());
+  Hive.registerAdapter(RepeatTypeAdapter());
   Hive.registerAdapter(RoutineAdapter());
   await Hive.openBox<Task>('tasks');
   await Hive.openBox<Routine>('routines');
