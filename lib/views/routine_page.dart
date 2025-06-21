@@ -26,71 +26,185 @@ class _RoutinePageState extends State<RoutinePage> {
     });
   }
 
-  Future<void> _addRoutine() async {
-    final controller = TextEditingController();
-    final result = await showDialog<String>(
+  String _weekdayLabel(int day) => ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][day-1];
+
+  String _scheduleText(Routine r) {
+    switch (r.repeatType) {
+      case RepeatType.daily:
+        return 'Daily';
+      case RepeatType.weekly:
+        if (r.weekdays.isNotEmpty) {
+          return 'Every ${_weekdayLabel(r.weekdays.first)}';
+        }
+        return 'Weekly';
+      case RepeatType.custom:
+        return r.weekdays.map(_weekdayLabel).join(', ');
+    }
+  }
+
+  Future<void> _openForm({Routine? routine}) async {
+    final bool isNew = routine == null;
+    final nameController = TextEditingController(text: routine?.title ?? '');
+    RepeatType type = routine?.repeatType ?? RepeatType.daily;
+    Set<int> selected = {
+      ...(routine?.weekdays ?? (type == RepeatType.daily ? [1,2,3,4,5,6,7] : []))
+    };
+    bool active = routine?.isActive ?? true;
+
+    final result = await showModalBottomSheet<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('New Routine'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(labelText: 'Title'),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(context, controller.text), child: const Text('Add')),
-        ],
-      ),
+      isScrollControlled: true,
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+            left: 16,
+            right: 16,
+            top: 16,
+          ),
+          child: StatefulBuilder(
+            builder: (context, setModal) {
+              Widget daySelector() {
+                return Wrap(
+                  spacing: 4,
+                  children: List.generate(7, (index) {
+                    final day = index + 1;
+                    final sel = selected.contains(day);
+                    return FilterChip(
+                      label: Text(_weekdayLabel(day)),
+                      selected: sel,
+                      onSelected: (val) {
+                        setModal(() {
+                          if (val) {
+                            selected.add(day);
+                          } else {
+                            selected.remove(day);
+                          }
+                        });
+                      },
+                    );
+                  }),
+                );
+              }
+
+              return SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: nameController,
+                      decoration: const InputDecoration(labelText: 'Name'),
+                    ),
+                    const SizedBox(height: 8),
+                    RadioListTile<RepeatType>(
+                      title: const Text('Daily'),
+                      value: RepeatType.daily,
+                      groupValue: type,
+                      onChanged: (val) => setModal(() => type = val!),
+                    ),
+                    RadioListTile<RepeatType>(
+                      title: const Text('Weekly'),
+                      value: RepeatType.weekly,
+                      groupValue: type,
+                      onChanged: (val) => setModal(() => type = val!),
+                    ),
+                    RadioListTile<RepeatType>(
+                      title: const Text('Custom'),
+                      value: RepeatType.custom,
+                      groupValue: type,
+                      onChanged: (val) => setModal(() => type = val!),
+                    ),
+                    if (type != RepeatType.daily)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: daySelector(),
+                      ),
+                    SwitchListTile(
+                      title: const Text('Active'),
+                      value: active,
+                      onChanged: (val) => setModal(() => active = val),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        if (!isNew)
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, 'delete'),
+                            child: const Text('Delete'),
+                          ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('Cancel'),
+                        ),
+                        const SizedBox(width: 8),
+                        ElevatedButton(
+                          onPressed: () => Navigator.pop(context, 'save'),
+                          child: Text(isNew ? 'Add' : 'Save'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
-    if (result != null && result.isNotEmpty) {
-      final r = Routine(title: result, weekdays: [], isActive: true);
-      await _service.addRoutine(r);
+
+    if (result == 'delete' && routine != null) {
+      await _service.deleteRoutine(routine);
+      _load();
+    } else if (result == 'save') {
+      final list = <int>[];
+      switch (type) {
+        case RepeatType.daily:
+          list.addAll([1,2,3,4,5,6,7]);
+          break;
+        case RepeatType.weekly:
+          if (selected.isNotEmpty) {
+            list.add(selected.first);
+          }
+          break;
+        case RepeatType.custom:
+          list.addAll(selected.toList()..sort());
+          break;
+      }
+      if (isNew) {
+        final r = Routine(
+          title: nameController.text,
+          repeatType: type,
+          weekdays: list,
+          isActive: active,
+        );
+        await _service.addRoutine(r);
+      } else {
+        routine!.title = nameController.text;
+        routine.repeatType = type;
+        routine.weekdays = list;
+        routine.isActive = active;
+        await _service.updateRoutine(routine);
+      }
       _load();
     }
   }
 
-  Widget _buildWeekdayCheckbox(Routine routine, int day) {
-    return Expanded(
-      child: CheckboxListTile(
-        dense: true,
-        title: Text(['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][day-1], style: const TextStyle(fontSize: 12)),
-        value: routine.weekdays.contains(day),
-        onChanged: (val) async {
-          if (val == true) {
-            routine.weekdays.add(day);
-          } else {
-            routine.weekdays.remove(day);
-          }
-          await _service.updateRoutine(routine);
-          setState(() {});
-        },
-      ),
-    );
-  }
-
-  Widget _buildRoutineItem(Routine routine) {
+  Widget _buildItem(Routine r) {
     return Card(
-      child: Column(
-        children: [
-          ListTile(
-            title: Text(routine.title),
-            trailing: Switch(
-              value: routine.isActive,
-              onChanged: (val) async {
-                routine.isActive = val;
-                await _service.updateRoutine(routine);
-                setState(() {});
-              },
-            ),
-            onLongPress: () async {
-              await _service.deleteRoutine(routine);
-              _load();
-            },
-          ),
-          Row(
-            children: List.generate(7, (index) => _buildWeekdayCheckbox(routine, index + 1)),
-          )
-        ],
+      child: ListTile(
+        title: Text(r.title),
+        subtitle: Text(_scheduleText(r)),
+        trailing: Switch(
+          value: r.isActive,
+          onChanged: (val) async {
+            r.isActive = val;
+            await _service.updateRoutine(r);
+            setState(() {});
+          },
+        ),
+        onTap: () => _openForm(routine: r),
       ),
     );
   }
@@ -100,10 +214,11 @@ class _RoutinePageState extends State<RoutinePage> {
     return Scaffold(
       appBar: AppBar(title: const Text('Routines')),
       body: ListView(
-        children: _routines.map(_buildRoutineItem).toList(),
+        padding: const EdgeInsets.all(8),
+        children: _routines.map(_buildItem).toList(),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _addRoutine,
+        onPressed: () => _openForm(),
         child: const Icon(Icons.add),
       ),
     );
