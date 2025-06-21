@@ -1,37 +1,56 @@
+import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 
-
-@HiveType(typeId: 0)
+@HiveType(typeId: 1)
 class Routine extends HiveObject {
   @HiveField(0)
   String title;
 
   @HiveField(1)
-  DateTime date;
+  List<int> weekdays;
 
   @HiveField(2)
-  bool isCompleted;
+  int? timeMinutes;
 
-  Routine({required this.title, required this.date, this.isCompleted = false});
+  @HiveField(3)
+  bool isActive;
+
+  Routine({
+    required this.title,
+    required this.weekdays,
+    this.timeMinutes,
+    this.isActive = true,
+  });
+
+  TimeOfDay? get time =>
+      timeMinutes == null ? null : TimeOfDay(hour: timeMinutes! ~/ 60, minute: timeMinutes! % 60);
+  set time(TimeOfDay? t) => timeMinutes = t == null ? null : t.hour * 60 + t.minute;
 }
 
 class RoutineAdapter extends TypeAdapter<Routine> {
   @override
-  final int typeId = 0;
+  final int typeId = 1;
 
   @override
   Routine read(BinaryReader reader) {
     return Routine(
       title: reader.readString(),
-      date: DateTime.fromMillisecondsSinceEpoch(reader.readInt()),
-      isCompleted: reader.readBool(),
+      weekdays: List<int>.from(reader.readList()),
+      timeMinutes: reader.readBool() ? reader.readInt() : null,
+      isActive: reader.readBool(),
     );
   }
 
   @override
   void write(BinaryWriter writer, Routine obj) {
     writer.writeString(obj.title);
-    writer.writeInt(obj.date.millisecondsSinceEpoch);
-    writer.writeBool(obj.isCompleted);
+    writer.writeList(obj.weekdays);
+    if (obj.timeMinutes != null) {
+      writer.writeBool(true);
+      writer.writeInt(obj.timeMinutes!);
+    } else {
+      writer.writeBool(false);
+    }
+    writer.writeBool(obj.isActive);
   }
 }

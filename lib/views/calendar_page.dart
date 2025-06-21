@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
-import '../models/routine.dart';
-import '../services/routine_service.dart';
+import '../models/task.dart';
+import '../services/task_service.dart';
 
 class CalendarPage extends StatefulWidget {
   const CalendarPage({super.key});
@@ -11,32 +11,32 @@ class CalendarPage extends StatefulWidget {
 }
 
 class _CalendarPageState extends State<CalendarPage> {
-  final RoutineService _service = RoutineService();
+  final TaskService _service = TaskService();
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
-  List<Routine> _routines = [];
+  List<Task> _tasks = [];
 
   @override
   void initState() {
     super.initState();
     _selectedDay = DateTime.now();
-    _loadRoutines();
+    _loadTasks();
   }
 
-  Future<void> _loadRoutines() async {
+  Future<void> _loadTasks() async {
     if (_selectedDay == null) return;
-    final routines = await _service.getRoutinesForDay(_selectedDay!);
+    final tasks = await _service.getTasksForDay(_selectedDay!);
     setState(() {
-      _routines = routines;
+      _tasks = tasks;
     });
   }
 
-  Future<void> _addRoutine() async {
+  Future<void> _addTask() async {
     final controller = TextEditingController();
     final result = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('New Routine'),
+        title: const Text('New Task'),
         content: TextField(
           controller: controller,
           decoration: const InputDecoration(labelText: 'Title'),
@@ -54,20 +54,20 @@ class _CalendarPageState extends State<CalendarPage> {
       ),
     );
     if (result != null && result.isNotEmpty) {
-      final routine = Routine(title: result, date: _selectedDay!);
-      await _service.addRoutine(routine);
-      _loadRoutines();
+      final task = Task(title: result, date: _selectedDay!);
+      await _service.addTask(task);
+      _loadTasks();
     }
   }
 
-  Widget _buildRoutineItem(Routine routine) {
+  Widget _buildTaskItem(Task task) {
     return CheckboxListTile(
-      title: Text(routine.title),
-      value: routine.isCompleted,
+      title: Text(task.title),
+      value: task.isCompleted,
       onChanged: (value) async {
-        routine.isCompleted = value ?? false;
-        await _service.updateRoutine(routine);
-        _loadRoutines();
+        task.isCompleted = value ?? false;
+        await _service.updateTask(task);
+        _loadTasks();
       },
     );
   }
@@ -89,18 +89,18 @@ class _CalendarPageState extends State<CalendarPage> {
                 _selectedDay = selectedDay;
                 _focusedDay = focusedDay;
               });
-              _loadRoutines();
+              _loadTasks();
             },
           ),
           Expanded(
             child: ListView(
-              children: _routines.map(_buildRoutineItem).toList(),
+              children: _tasks.map(_buildTaskItem).toList(),
             ),
           ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _addRoutine,
+        onPressed: _addTask,
         child: const Icon(Icons.add),
       ),
     );
