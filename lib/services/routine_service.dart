@@ -1,0 +1,31 @@
+import 'package:hive_flutter/hive_flutter.dart';
+import '../models/routine.dart';
+
+class RoutineService {
+  static const String boxName = 'routines';
+
+  Future<Box<Routine>> _openBox() async {
+    if (Hive.isBoxOpen(boxName)) {
+      return Hive.box<Routine>(boxName);
+    }
+    return await Hive.openBox<Routine>(boxName);
+  }
+
+  Future<List<Routine>> getRoutinesForDay(DateTime day) async {
+    final box = await _openBox();
+    final start = DateTime(day.year, day.month, day.day);
+    final end = DateTime(day.year, day.month, day.day, 23, 59, 59);
+    return box.values
+        .where((r) => r.date.isAfter(start.subtract(const Duration(seconds: 1))) && r.date.isBefore(end.add(const Duration(seconds: 1))))
+        .toList();
+  }
+
+  Future<void> addRoutine(Routine routine) async {
+    final box = await _openBox();
+    await box.add(routine);
+  }
+
+  Future<void> updateRoutine(Routine routine) async {
+    await routine.save();
+  }
+}
