@@ -11,13 +11,9 @@ class RoutineService {
     return await Hive.openBox<Routine>(boxName);
   }
 
-  Future<List<Routine>> getRoutinesForDay(DateTime day) async {
+  Future<List<Routine>> getRoutines() async {
     final box = await _openBox();
-    final start = DateTime(day.year, day.month, day.day);
-    final end = DateTime(day.year, day.month, day.day, 23, 59, 59);
-    return box.values
-        .where((r) => r.date.isAfter(start.subtract(const Duration(seconds: 1))) && r.date.isBefore(end.add(const Duration(seconds: 1))))
-        .toList();
+    return box.values.toList();
   }
 
   Future<void> addRoutine(Routine routine) async {
@@ -27,5 +23,9 @@ class RoutineService {
 
   Future<void> updateRoutine(Routine routine) async {
     await routine.save();
+  }
+
+  Future<void> deleteRoutine(Routine routine) async {
+    await routine.delete();
   }
 }
