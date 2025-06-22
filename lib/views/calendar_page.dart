@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../models/task.dart';
-import '../models/routine.dart';
 import '../services/task_service.dart';
-import '../services/routine_service.dart';
 
 class CalendarPage extends StatefulWidget {
   const CalendarPage({super.key});
@@ -14,11 +12,9 @@ class CalendarPage extends StatefulWidget {
 
 class _CalendarPageState extends State<CalendarPage> {
   final TaskService _service = TaskService();
-  final RoutineService _routineService = RoutineService();
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
   List<Task> _tasks = [];
-  List<Routine> _routines = [];
 
   @override
   void initState() {
@@ -30,12 +26,8 @@ class _CalendarPageState extends State<CalendarPage> {
   Future<void> _loadData() async {
     if (_selectedDay == null) return;
     final tasks = await _service.getTasksForDay(_selectedDay!);
-    final routines = (await _routineService.getRoutines())
-        .where((r) => r.isActive && r.weekdays.contains(_selectedDay!.weekday))
-        .toList();
     setState(() {
       _tasks = tasks;
-      _routines = routines;
     });
   }
 
@@ -80,13 +72,7 @@ class _CalendarPageState extends State<CalendarPage> {
     );
   }
 
-  Widget _buildRoutineItem(Routine routine) {
-    return ListTile(
-      leading: const Icon(Icons.repeat, color: Colors.blue),
-      title: Text(routine.title),
-      subtitle: routine.time == null ? null : Text(routine.time!.format(context)),
-    );
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -111,7 +97,6 @@ class _CalendarPageState extends State<CalendarPage> {
           Expanded(
             child: ListView(
               children: [
-                ..._routines.map(_buildRoutineItem),
                 ..._tasks.map(_buildTaskItem),
               ],
             ),
