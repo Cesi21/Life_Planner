@@ -181,7 +181,7 @@ class _RoutinePageState extends State<RoutinePage> {
         );
         await _service.addRoutine(r);
       } else {
-        routine!.title = nameController.text;
+        routine.title = nameController.text;
         routine.repeatType = type;
         routine.weekdays = list;
         routine.isActive = active;
