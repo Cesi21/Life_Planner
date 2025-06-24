@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../models/task.dart';
 
@@ -7,7 +6,7 @@ class NotificationService {
 
   Future<void> init() async {
     const AndroidInitializationSettings androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const IOSInitializationSettings iosSettings = IOSInitializationSettings();
+    const DarwinInitializationSettings iosSettings = DarwinInitializationSettings();
     const InitializationSettings settings = InitializationSettings(android: androidSettings, iOS: iosSettings);
     await _plugin.initialize(settings);
   }
@@ -23,7 +22,7 @@ class NotificationService {
       date,
       const NotificationDetails(
         android: AndroidNotificationDetails('tasks', 'Tasks'),
-        iOS: IOSNotificationDetails(),
+        iOS: DarwinNotificationDetails(),
       ),
       androidAllowWhileIdle: true,
       uiLocalNotificationDateInterpretation:
