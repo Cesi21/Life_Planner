@@ -1,4 +1,6 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:timezone/data/latest.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
 import '../models/task.dart';
 
 class NotificationService {
@@ -9,17 +11,19 @@ class NotificationService {
     const DarwinInitializationSettings iosSettings = DarwinInitializationSettings();
     const InitializationSettings settings = InitializationSettings(android: androidSettings, iOS: iosSettings);
     await _plugin.initialize(settings);
+    tz.initializeTimeZones();
   }
 
   Future<void> scheduleTask(Task task) async {
     if (task.reminderMinutes == null) return;
     final date = DateTime(task.date.year, task.date.month, task.date.day)
         .add(Duration(minutes: task.reminderMinutes!));
-    await _plugin.schedule(
+    final tz.TZDateTime tzDate = tz.TZDateTime.from(date, tz.local);
+    await _plugin.zonedSchedule(
       task.key as int? ?? 0,
       task.title,
       '',
-      date,
+      tzDate,
       const NotificationDetails(
         android: AndroidNotificationDetails('tasks', 'Tasks'),
         iOS: DarwinNotificationDetails(),
