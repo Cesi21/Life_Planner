@@ -11,13 +11,14 @@ class TaskService {
     return await Hive.openBox<Task>(boxName);
   }
 
-  Future<List<Task>> getTasksForDay(DateTime day) async {
+  Future<List<Task>> getTasksForDay(DateTime day, {String? tag}) async {
     final box = await _openBox();
     final start = DateTime(day.year, day.month, day.day);
     final end = DateTime(day.year, day.month, day.day, 23, 59, 59);
     return box.values
         .where((t) => t.date.isAfter(start.subtract(const Duration(seconds: 1))) &&
-            t.date.isBefore(end.add(const Duration(seconds: 1))))
+            t.date.isBefore(end.add(const Duration(seconds: 1))) &&
+            (tag == null || t.tag == tag))
         .toList();
   }
 
