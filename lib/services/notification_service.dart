@@ -16,7 +16,7 @@ class NotificationService {
     if (task.reminderMinutes == null) return;
     final date = DateTime(task.date.year, task.date.month, task.date.day)
         .add(Duration(minutes: task.reminderMinutes!));
-    await _plugin.zonedSchedule(
+    await _plugin.schedule(
       task.key as int? ?? 0,
       task.title,
       '',
@@ -26,7 +26,8 @@ class NotificationService {
         iOS: IOSNotificationDetails(),
       ),
       androidAllowWhileIdle: true,
-      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
       matchDateTimeComponents: DateTimeComponents.time,
     );
   }
