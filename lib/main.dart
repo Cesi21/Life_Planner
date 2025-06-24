@@ -4,6 +4,8 @@ import 'models/task.dart';
 import 'models/routine.dart';
 import 'views/calendar_page.dart';
 import 'views/routine_page.dart';
+import 'views/stats_page.dart';
+import 'services/notification_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -13,6 +15,7 @@ Future<void> main() async {
   Hive.registerAdapter(RoutineAdapter());
   await Hive.openBox<Task>('tasks');
   await Hive.openBox<Routine>('routines');
+  await NotificationService().init();
 
   runApp(const PlannerApp());
 }
@@ -52,7 +55,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _index = 0;
-  final List<Widget> _pages = const [CalendarPage(), RoutinePage()];
+  final List<Widget> _pages = const [CalendarPage(), RoutinePage(), StatsPage()];
 
   @override
   Widget build(BuildContext context) {
@@ -67,6 +70,7 @@ class _HomePageState extends State<HomePage> {
         destinations: const [
           NavigationDestination(icon: Icon(Icons.calendar_today), label: 'Calendar'),
           NavigationDestination(icon: Icon(Icons.repeat), label: 'Routines'),
+          NavigationDestination(icon: Icon(Icons.bar_chart), label: 'Stats'),
         ],
       ),
     );

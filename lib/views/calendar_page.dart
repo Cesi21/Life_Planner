@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../models/task.dart';
 import '../services/task_service.dart';
+import '../services/notification_service.dart';
 
 class CalendarPage extends StatefulWidget {
   const CalendarPage({super.key});
@@ -15,6 +16,8 @@ class _CalendarPageState extends State<CalendarPage> {
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
   List<Task> _tasks = [];
+  String? _selectedTag;
+  List<String> _availableTags = [];
 
   @override
   void initState() {
@@ -25,44 +28,109 @@ class _CalendarPageState extends State<CalendarPage> {
 
   Future<void> _loadData() async {
     if (_selectedDay == null) return;
-    final tasks = await _service.getTasksForDay(_selectedDay!);
+    final tasks = await _service.getTasksForDay(_selectedDay!, tag: _selectedTag);
+    final all = await _service.getTasksForDay(_selectedDay!);
+    final tags = <String>{};
+    for (final t in all) {
+      if (t.tag != null) tags.add(t.tag!);
+    }
     setState(() {
       _tasks = tasks;
+      _availableTags = tags.toList();
     });
   }
 
   Future<void> _addTask() async {
-    final controller = TextEditingController();
-    final result = await showDialog<String>(
+    final titleController = TextEditingController();
+    final tagController = TextEditingController();
+    TimeOfDay? reminder;
+
+    final result = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('New Task'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(labelText: 'Title'),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setStateDialog) => AlertDialog(
+          title: const Text('New Task'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleController,
+                decoration: const InputDecoration(labelText: 'Title'),
+              ),
+              TextField(
+                controller: tagController,
+                decoration: const InputDecoration(labelText: 'Tag'),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Text('Reminder:'),
+                  const SizedBox(width: 8),
+                  Text(reminder == null ? 'None' : reminder!.format(context)),
+                  const Spacer(),
+                  TextButton(
+                    onPressed: () async {
+                      final picked = await showTimePicker(
+                        context: context,
+                        initialTime: TimeOfDay.now(),
+                      );
+                      if (picked != null) {
+                        setStateDialog(() => reminder = picked);
+                      }
+                    },
+                    child: const Text('Select'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Add'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, controller.text),
-            child: const Text('Add'),
-          ),
-        ],
       ),
     );
-    if (result != null && result.isNotEmpty) {
-      final task = Task(title: result, date: _selectedDay!);
+
+    if (result == true && titleController.text.isNotEmpty) {
+      final task = Task(
+        title: titleController.text,
+        date: _selectedDay!,
+        tag: tagController.text.isEmpty ? null : tagController.text,
+      );
+      task.reminderTime = reminder;
       await _service.addTask(task);
+      await NotificationService().scheduleTask(task);
       _loadData();
     }
   }
 
   Widget _buildTaskItem(Task task) {
+    final textStyle = task.isCompleted
+        ? const TextStyle(decoration: TextDecoration.lineThrough)
+        : null;
     return CheckboxListTile(
-      title: Text(task.title),
+      title: Row(
+        children: [
+          Expanded(child: Text(task.title, style: textStyle)),
+          if (task.tag != null)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              margin: const EdgeInsets.only(left: 4),
+              decoration: BoxDecoration(
+                color: Colors.blueAccent.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(task.tag!, style: const TextStyle(fontSize: 12)),
+            ),
+        ],
+      ),
       value: task.isCompleted,
       onChanged: (value) async {
         task.isCompleted = value ?? false;
@@ -94,11 +162,35 @@ class _CalendarPageState extends State<CalendarPage> {
               _loadData();
             },
           ),
-          Expanded(
-            child: ListView(
+        if (_availableTags.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
               children: [
-                ..._tasks.map(_buildTaskItem),
+                const Text('Tag:'),
+                const SizedBox(width: 8),
+                DropdownButton<String>(
+                  value: _selectedTag,
+                  hint: const Text('All'),
+                  items: [
+                    const DropdownMenuItem(value: null, child: Text('All')),
+                    ..._availableTags.map(
+                      (t) => DropdownMenuItem(value: t, child: Text(t)),
+                    ),
+                  ],
+                  onChanged: (val) {
+                    setState(() => _selectedTag = val);
+                    _loadData();
+                  },
+                ),
               ],
+            ),
+          ),
+        Expanded(
+          child: ListView(
+            children: [
+              ..._tasks.map(_buildTaskItem),
+            ],
             ),
           ),
         ],
