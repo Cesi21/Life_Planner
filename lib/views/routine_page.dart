@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../models/routine.dart';
 import '../services/routine_service.dart';
 import '../services/tag_service.dart';
-import '../models/tag.dart';
 import '../widgets/routine_tile.dart';
 
 class RoutinePage extends StatefulWidget {

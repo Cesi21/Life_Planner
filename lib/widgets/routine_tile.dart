@@ -5,7 +5,6 @@ import '../models/routine.dart';
 import '../services/routine_service.dart';
 import '../services/notification_service.dart';
 import '../services/tag_service.dart';
-import '../models/tag.dart';
 
 class RoutineTile extends StatefulWidget {
   final Routine routine;
@@ -311,15 +310,24 @@ class _RoutineTileState extends State<RoutineTile> {
     final theme = Theme.of(context);
     final baseColor = widget.showActiveSwitch
         ? null
-        : Colors.purpleAccent.withOpacity(0.1);
+        : (() {
+            final c = Colors.purpleAccent;
+            return c.withAlpha((c.alpha * 0.1).round());
+          })();
     final completedColor = theme.brightness == Brightness.dark
-        ? Colors.grey.shade800.withOpacity(0.3)
+        ? (() {
+            final c = Colors.grey.shade800;
+            return c.withAlpha((c.alpha * 0.3).round());
+          })()
         : Colors.grey.shade300;
     final bg = _done ? completedColor : baseColor;
 
     final titleStyle = TextStyle(
       color: _done
-          ? theme.colorScheme.onSurface.withOpacity(0.6)
+          ? (() {
+              final c = theme.colorScheme.onSurface;
+              return c.withAlpha((c.alpha * 0.6).round());
+            })()
           : null,
     );
 
@@ -336,7 +344,10 @@ class _RoutineTileState extends State<RoutineTile> {
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 margin: const EdgeInsets.only(left: 4),
                 decoration: BoxDecoration(
-                  color: tag.color.withOpacity(0.2),
+                  color: () {
+                    final c = tag.color;
+                    return c.withAlpha((c.alpha * 0.2).round());
+                  }(),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(tag.name, style: const TextStyle(fontSize: 12)),
