@@ -7,6 +7,7 @@ import '../services/routine_service.dart';
 import '../services/notification_service.dart';
 import '../widgets/task_tile.dart';
 import '../widgets/date_selector.dart';
+import '../widgets/routine_tile.dart';
 
 class CalendarPage extends StatefulWidget {
   const CalendarPage({super.key});
@@ -41,7 +42,8 @@ class _CalendarPageState extends State<CalendarPage> {
     final routines = await _routineService.getRoutinesForDay(_selectedDay!);
     final Map<int, bool> doneMap = {};
     for (final r in routines) {
-      doneMap[r.key as int] = await _routineService.isCompleted(r, _selectedDay!);
+      doneMap[r.key as int] =
+          await _routineService.isRoutineDone(r.key.toString(), _selectedDay!);
     }
     final tags = <String>{};
     for (final t in all) {
@@ -137,28 +139,36 @@ class _CalendarPageState extends State<CalendarPage> {
   }
 
   Widget _buildTaskItem(Task task) {
-    return TaskTile(
-      task: task,
-      onCompleted: (value) async {
-        task.isCompleted = value ?? false;
-        await _service.updateTask(task);
-        _loadData();
-      },
-      onEdit: () => _openTaskForm(task: task),
-      onDelete: () async {
-        await _service.deleteTask(task);
-        _loadData();
-      },
+    return Card(
+      color: Colors.greenAccent.withOpacity(0.1),
+      child: TaskTile(
+        task: task,
+        onCompleted: (value) async {
+          task.isCompleted = value ?? false;
+          await _service.updateTask(task);
+          _loadData();
+        },
+        onEdit: () => _openTaskForm(task: task),
+        onDelete: () async {
+          await _service.deleteTask(task);
+          _loadData();
+        },
+      ),
     );
   }
 
   Widget _buildRoutineItem(Routine r) {
     final done = _routineDone[r.key as int] ?? false;
-    return CheckboxListTile(
-      title: Text(r.title),
-      value: done,
-      onChanged: (val) async {
-        await _routineService.markCompleted(r, _selectedDay!, val ?? false);
+    return RoutineTile(
+      routine: r,
+      completed: done,
+      date: _selectedDay!,
+      onCompleted: (val) async {
+        if (val) {
+          await _routineService.markRoutineDone(r.key.toString(), _selectedDay!);
+        } else {
+          await _routineService.unmarkRoutineDone(r.key.toString(), _selectedDay!);
+        }
         _loadData();
       },
     );

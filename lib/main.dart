@@ -17,6 +17,7 @@ Future<void> main() async {
   Hive.registerAdapter(RoutineAdapter());
   await Hive.openBox<Task>('tasks');
   await Hive.openBox<Routine>('routines');
+  await Hive.openBox<Map>('routine_done');
   await Hive.openBox('settings');
   await NotificationService().init();
 

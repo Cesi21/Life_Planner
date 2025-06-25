@@ -2,6 +2,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import '../models/task.dart';
+import '../models/routine.dart';
 
 class NotificationService {
   final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
@@ -34,4 +35,8 @@ class NotificationService {
       matchDateTimeComponents: DateTimeComponents.time,
     );
   }
+
+  Future<void> scheduleRoutineReminder(Routine r, DateTime nextOccur) async {}
+
+  Future<void> cancelRoutineReminder(String routineKey) async {}
 }
