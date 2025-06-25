@@ -34,28 +34,23 @@ class PlannerApp extends StatelessWidget {
       valueListenable: settingsBox.listenable(),
       builder: (context, box, _) {
         final theme = AppTheme.values[box.get('theme', defaultValue: 0) as int];
-        final customTheme = ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-          brightness: Brightness.light,
-        );
-        final lightTheme = ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
-          brightness: Brightness.light,
-        );
+        ThemeMode mode;
+        switch (theme) {
+          case AppTheme.light:
+            mode = ThemeMode.light;
+            break;
+          case AppTheme.dark:
+            mode = ThemeMode.dark;
+            break;
+          default:
+            mode = ThemeMode.system;
+        }
+
         return MaterialApp(
           title: 'Planner',
-          themeMode: theme == AppTheme.dark ? ThemeMode.dark : ThemeMode.light,
-          theme: theme == AppTheme.custom ? customTheme : lightTheme,
-          darkTheme: ThemeData(
-            useMaterial3: true,
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: Colors.blue,
-              brightness: Brightness.dark,
-            ),
-            brightness: Brightness.dark,
-          ),
+          themeMode: mode,
+          theme: ThemeData.light(useMaterial3: true),
+          darkTheme: ThemeData.dark(useMaterial3: true),
           home: const HomePage(),
         );
       },
