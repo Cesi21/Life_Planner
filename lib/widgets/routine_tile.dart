@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import '../models/routine.dart';
 import '../services/routine_service.dart';
 import '../services/notification_service.dart';
+import '../services/tag_service.dart';
+import '../models/tag.dart';
 
 class RoutineTile extends StatefulWidget {
   final Routine routine;
@@ -34,6 +36,7 @@ class _RoutineTileState extends State<RoutineTile> {
   int _remaining = 0;
   bool _paused = false;
   int _streak = 0;
+  bool _done = false;
 
   bool get _running => _timer?.isActive ?? false;
 
@@ -56,6 +59,13 @@ class _RoutineTileState extends State<RoutineTile> {
     RoutineService()
         .getCurrentStreak(widget.routine.key.toString())
         .then((value) => setState(() => _streak = value));
+    if (widget.date != null) {
+      RoutineService()
+          .isRoutineDone(widget.routine.key.toString(), widget.date!)
+          .then((d) => setState(() => _done = d));
+    } else {
+      _done = widget.completed ?? false;
+    }
   }
 
   @override
@@ -228,7 +238,6 @@ class _RoutineTileState extends State<RoutineTile> {
 
   @override
   Widget build(BuildContext context) {
-    final done = widget.completed ?? false;
     final widgets = <Widget>[];
     if (widget.routine.duration != null) {
       if (_running) {
@@ -263,7 +272,7 @@ class _RoutineTileState extends State<RoutineTile> {
         widgets.add(
           IconButton(
             icon: const Icon(Icons.play_arrow),
-            onPressed: done ? null : _startTimer,
+            onPressed: _done ? null : _startTimer,
           ),
         );
       } else {
@@ -285,10 +294,16 @@ class _RoutineTileState extends State<RoutineTile> {
     } else {
       widgets.add(
         Checkbox(
-          value: done,
+          value: _done,
           onChanged: _running || !_isToday
               ? null
-              : (val) => widget.onCompleted?.call(val ?? false),
+              : (val) async {
+                  _done = val ?? false;
+                  setState(() {});
+                  await RoutineService()
+                      .toggleComplete(widget.routine, widget.date!, _done);
+                  widget.onCompleted?.call(_done);
+                },
         ),
       );
     }
@@ -300,17 +315,35 @@ class _RoutineTileState extends State<RoutineTile> {
     final completedColor = theme.brightness == Brightness.dark
         ? Colors.grey.shade800.withOpacity(0.3)
         : Colors.grey.shade300;
-    final bg = done ? completedColor : baseColor;
+    final bg = _done ? completedColor : baseColor;
 
     final titleStyle = TextStyle(
-      color: done
+      color: _done
           ? theme.colorScheme.onSurface.withOpacity(0.6)
           : null,
     );
 
     final child = ListTile(
-      leading: done ? const Icon(Icons.check_circle, color: Colors.green) : null,
-      title: Text(widget.routine.title, style: titleStyle),
+      leading: _done ? const Icon(Icons.check_circle, color: Colors.green) : null,
+      title: Row(
+        children: [
+          Expanded(child: Text(widget.routine.title, style: titleStyle)),
+          if (widget.routine.tagId != null)
+            Builder(builder: (context) {
+              final tag = TagService().getTagById(widget.routine.tagId!);
+              if (tag == null) return const SizedBox();
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                margin: const EdgeInsets.only(left: 4),
+                decoration: BoxDecoration(
+                  color: tag.color.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(tag.name, style: const TextStyle(fontSize: 12)),
+              );
+            }),
+        ],
+      ),
       subtitle: Row(
         children: [
           _buildDays(),
@@ -333,7 +366,7 @@ class _RoutineTileState extends State<RoutineTile> {
         alignment: Alignment.centerRight,
         children: [
           child,
-          if (done)
+          if (_done)
             const Padding(
               padding: EdgeInsets.only(right: 8),
               child: Icon(Icons.check, color: Colors.green),

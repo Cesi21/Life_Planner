@@ -12,14 +12,14 @@ class TaskService implements ITaskService {
     return await Hive.openBox<Task>(boxName);
   }
 
-  Future<List<Task>> getTasksForDay(DateTime day, {String? tag}) async {
+  Future<List<Task>> getTasksForDay(DateTime day, {String? tagId}) async {
     final box = await _openBox();
     final start = DateTime(day.year, day.month, day.day);
     final end = DateTime(day.year, day.month, day.day, 23, 59, 59);
     return box.values
         .where((t) => t.date.isAfter(start.subtract(const Duration(seconds: 1))) &&
             t.date.isBefore(end.add(const Duration(seconds: 1))) &&
-            (tag == null || t.tag == tag))
+            (tagId == null || t.tagId == tagId))
         .toList();
   }
 
@@ -29,6 +29,11 @@ class TaskService implements ITaskService {
   }
 
   Future<void> updateTask(Task task) async {
+    await task.save();
+  }
+
+  Future<void> toggleComplete(Task task, bool done) async {
+    task.isCompleted = done;
     await task.save();
   }
 
