@@ -16,6 +16,14 @@ class RoutineService {
     return box.values.toList();
   }
 
+  Future<List<Routine>> getRoutinesForDay(DateTime day) async {
+    final box = await _openBox();
+    final weekday = day.weekday;
+    return box.values
+        .where((r) => r.isActive && r.weekdays.contains(weekday))
+        .toList();
+  }
+
   Future<void> addRoutine(Routine routine) async {
     final box = await _openBox();
     await box.add(routine);

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/routine.dart';
 import '../services/routine_service.dart';
+import '../widgets/routine_tile.dart';
 
 class RoutinePage extends StatefulWidget {
   const RoutinePage({super.key});
@@ -28,19 +29,6 @@ class _RoutinePageState extends State<RoutinePage> {
 
   String _weekdayLabel(int day) => ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][day-1];
 
-  String _scheduleText(Routine r) {
-    switch (r.repeatType) {
-      case RepeatType.daily:
-        return 'Daily';
-      case RepeatType.weekly:
-        if (r.weekdays.isNotEmpty) {
-          return 'Every ${_weekdayLabel(r.weekdays.first)}';
-        }
-        return 'Weekly';
-      case RepeatType.custom:
-        return r.weekdays.map(_weekdayLabel).join(', ');
-    }
-  }
 
   Future<void> _openForm({Routine? routine}) async {
     final bool isNew = routine == null;
@@ -192,20 +180,14 @@ class _RoutinePageState extends State<RoutinePage> {
   }
 
   Widget _buildItem(Routine r) {
-    return Card(
-      child: ListTile(
-        title: Text(r.title),
-        subtitle: Text(_scheduleText(r)),
-        trailing: Switch(
-          value: r.isActive,
-          onChanged: (val) async {
-            r.isActive = val;
-            await _service.updateRoutine(r);
-            setState(() {});
-          },
-        ),
-        onTap: () => _openForm(routine: r),
-      ),
+    return RoutineTile(
+      routine: r,
+      onActiveChanged: (val) async {
+        r.isActive = val;
+        await _service.updateRoutine(r);
+        setState(() {});
+      },
+      onTap: () => _openForm(routine: r),
     );
   }
 
