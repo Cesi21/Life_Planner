@@ -197,17 +197,27 @@ class _CalendarPageState extends State<CalendarPage> {
         children: [
           Padding(
             padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('You have ${_tasks.length} tasks and $_routineCount routines today'),
-                const SizedBox(height: 4),
-                LinearProgressIndicator(
-                  value: _tasks.isEmpty
-                      ? 0
-                      : _tasks.where((t) => t.isCompleted).length / _tasks.length,
+            child: Card(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Builder(
+                  builder: (context) {
+                    final total = _tasks.length + _routineCount;
+                    final completed =
+                        _tasks.where((t) => t.isCompleted).length +
+                            _routineDone.values.where((d) => d).length;
+                    final progress = total == 0 ? 0 : completed / total;
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Completed $completed of $total items today'),
+                        const SizedBox(height: 4),
+                        LinearProgressIndicator(value: progress),
+                      ],
+                    );
+                  },
                 ),
-              ],
+              ),
             ),
           ),
           Row(

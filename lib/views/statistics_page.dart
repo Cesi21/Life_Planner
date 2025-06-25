@@ -12,13 +12,6 @@ class StatisticsPage extends StatefulWidget {
 class _StatisticsPageState extends State<StatisticsPage> {
   late final StatsService _stats;
 
-  String _formatDuration(Duration d) {
-    final h = d.inHours;
-    final m = d.inMinutes.remainder(60);
-    if (h == 0) return '${m}m';
-    return '${h}h ${m}m';
-  }
-
   @override
   void initState() {
     super.initState();
@@ -47,8 +40,9 @@ class _StatisticsPageState extends State<StatisticsPage> {
                 trailing: Text('${_stats.completedToday}'),
               ),
               ListTile(
-                title: const Text('Time on Routines Today'),
-                trailing: Text(_formatDuration(_stats.timeSpentToday)),
+                title: const Text('Minutes Spent on Routines Today'),
+                trailing:
+                    Text('${_stats.timeSpentToday.inMinutes}m'),
               ),
               const SizedBox(height: 16),
               SizedBox(
@@ -72,6 +66,47 @@ class _StatisticsPageState extends State<StatisticsPage> {
                       final percent = weekly.values.elementAt(index);
                       return BarChartGroupData(x: index, barRods: [BarChartRodData(toY: percent)]);
                     }),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                height: 200,
+                child: LineChart(
+                  LineChartData(
+                    titlesData: FlTitlesData(
+                      bottomTitles: AxisTitles(
+                        sideTitles: SideTitles(
+                          showTitles: true,
+                          getTitlesWidget: (value, meta) {
+                            final date =
+                                _stats.minutesSpent.keys.elementAt(value.toInt());
+                            return Text('${date.month}/${date.day}',
+                                style: const TextStyle(fontSize: 10));
+                          },
+                        ),
+                      ),
+                    ),
+                    lineBarsData: [
+                      LineChartBarData(
+                        color: Colors.blue,
+                        spots: List.generate(
+                          _stats.tasksCompleted.length,
+                          (i) => FlSpot(
+                              i.toDouble(),
+                              _stats.tasksCompleted.values.elementAt(i).toDouble()),
+                        ),
+                      ),
+                      LineChartBarData(
+                        color: Colors.red,
+                        spots: List.generate(
+                          _stats.minutesSpent.length,
+                          (i) => FlSpot(
+                              i.toDouble(),
+                              _stats.minutesSpent.values.elementAt(i).toDouble()),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
