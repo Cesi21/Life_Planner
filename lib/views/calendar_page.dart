@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../models/task.dart';
 import '../services/task_service.dart';
+import '../services/routine_service.dart';
 import '../services/notification_service.dart';
+import '../widgets/task_tile.dart';
+import '../widgets/date_selector.dart';
 
 class CalendarPage extends StatefulWidget {
   const CalendarPage({super.key});
@@ -13,9 +16,11 @@ class CalendarPage extends StatefulWidget {
 
 class _CalendarPageState extends State<CalendarPage> {
   final TaskService _service = TaskService();
+  final RoutineService _routineService = RoutineService();
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
   List<Task> _tasks = [];
+  int _routineCount = 0;
   String? _selectedTag;
   List<String> _availableTags = [];
 
@@ -30,26 +35,28 @@ class _CalendarPageState extends State<CalendarPage> {
     if (_selectedDay == null) return;
     final tasks = await _service.getTasksForDay(_selectedDay!, tag: _selectedTag);
     final all = await _service.getTasksForDay(_selectedDay!);
+    final routines = await _routineService.getRoutinesForDay(_selectedDay!);
     final tags = <String>{};
     for (final t in all) {
       if (t.tag != null) tags.add(t.tag!);
     }
     setState(() {
       _tasks = tasks;
+      _routineCount = routines.length;
       _availableTags = tags.toList();
     });
   }
 
-  Future<void> _addTask() async {
-    final titleController = TextEditingController();
-    final tagController = TextEditingController();
-    TimeOfDay? reminder;
+  Future<void> _openTaskForm({Task? task}) async {
+    final titleController = TextEditingController(text: task?.title ?? '');
+    final tagController = TextEditingController(text: task?.tag ?? '');
+    TimeOfDay? reminder = task?.reminderTime;
 
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setStateDialog) => AlertDialog(
-          title: const Text('New Task'),
+          title: Text(task == null ? 'New Task' : 'Edit Task'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -91,7 +98,7 @@ class _CalendarPageState extends State<CalendarPage> {
             ),
             TextButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Add'),
+              child: Text(task == null ? 'Add' : 'Save'),
             ),
           ],
         ),
@@ -99,42 +106,36 @@ class _CalendarPageState extends State<CalendarPage> {
     );
 
     if (result == true && titleController.text.isNotEmpty) {
-      final task = Task(
-        title: titleController.text,
-        date: _selectedDay!,
-        tag: tagController.text.isEmpty ? null : tagController.text,
-      );
-      task.reminderTime = reminder;
-      await _service.addTask(task);
-      await NotificationService().scheduleTask(task);
+      if (task == null) {
+        final newTask = Task(
+          title: titleController.text,
+          date: _selectedDay!,
+          tag: tagController.text.isEmpty ? null : tagController.text,
+        );
+        newTask.reminderTime = reminder;
+        await _service.addTask(newTask);
+        await NotificationService().scheduleTask(newTask);
+      } else {
+        task.title = titleController.text;
+        task.tag = tagController.text.isEmpty ? null : tagController.text;
+        task.reminderTime = reminder;
+        await _service.updateTask(task);
+      }
       _loadData();
     }
   }
 
   Widget _buildTaskItem(Task task) {
-    final textStyle = task.isCompleted
-        ? const TextStyle(decoration: TextDecoration.lineThrough)
-        : null;
-    return CheckboxListTile(
-      title: Row(
-        children: [
-          Expanded(child: Text(task.title, style: textStyle)),
-          if (task.tag != null)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              margin: const EdgeInsets.only(left: 4),
-              decoration: BoxDecoration(
-                color: Colors.blueAccent.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(task.tag!, style: const TextStyle(fontSize: 12)),
-            ),
-        ],
-      ),
-      value: task.isCompleted,
-      onChanged: (value) async {
+    return TaskTile(
+      task: task,
+      onCompleted: (value) async {
         task.isCompleted = value ?? false;
         await _service.updateTask(task);
+        _loadData();
+      },
+      onEdit: () => _openTaskForm(task: task),
+      onDelete: () async {
+        await _service.deleteTask(task);
         _loadData();
       },
     );
@@ -148,6 +149,31 @@ class _CalendarPageState extends State<CalendarPage> {
       appBar: AppBar(title: const Text('Planner')),
       body: Column(
         children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('You have ${_tasks.length} tasks and $_routineCount routines today'),
+                const SizedBox(height: 4),
+                LinearProgressIndicator(
+                  value: _tasks.isEmpty
+                      ? 0
+                      : _tasks.where((t) => t.isCompleted).length / _tasks.length,
+                ),
+              ],
+            ),
+          ),
+          DateSelector(
+            selected: _selectedDay!,
+            onChanged: (d) {
+              setState(() {
+                _selectedDay = d;
+                _focusedDay = d;
+              });
+              _loadData();
+            },
+          ),
           TableCalendar(
             firstDay: DateTime.utc(2000, 1, 1),
             lastDay: DateTime.utc(2100, 12, 31),
@@ -196,7 +222,7 @@ class _CalendarPageState extends State<CalendarPage> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _addTask,
+        onPressed: () => _openTaskForm(),
         child: const Icon(Icons.add),
       ),
     );

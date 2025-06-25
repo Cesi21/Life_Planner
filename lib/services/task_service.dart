@@ -30,4 +30,8 @@ class TaskService {
   Future<void> updateTask(Task task) async {
     await task.save();
   }
+
+  Future<void> deleteTask(Task task) async {
+    await task.delete();
+  }
 }
