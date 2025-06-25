@@ -27,6 +27,7 @@ class _CalendarPageState extends State<CalendarPage> {
   final Map<int, bool> _routineDone = {};
   String? _selectedTag;
   List<String> _availableTags = [];
+  bool _successShown = false;
 
   @override
   void initState() {
@@ -58,6 +59,17 @@ class _CalendarPageState extends State<CalendarPage> {
         ..addAll(doneMap);
       _availableTags = tags.toList();
     });
+    final allDone = _routineDone.values.every((d) => d) && _routines.isNotEmpty;
+    if (mounted) {
+      if (allDone && !_successShown) {
+        _successShown = true;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Great job! All routines done for today.')),
+        );
+      } else if (!allDone) {
+        _successShown = false;
+      }
+    }
   }
 
   Future<void> _openTaskForm({Task? task}) async {
@@ -174,29 +186,6 @@ class _CalendarPageState extends State<CalendarPage> {
     );
   }
 
-  Future<void> _showSuggestions() async {
-    final suggestions = await _service.suggestTasks();
-    if (!mounted) return;
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Task Suggestions'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: suggestions
-              .take(3)
-              .map((t) => ListTile(title: Text(t.title)))
-              .toList(),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
 
 
 
@@ -221,15 +210,32 @@ class _CalendarPageState extends State<CalendarPage> {
               ],
             ),
           ),
-          DateSelector(
-            selected: _selectedDay!,
-            onChanged: (d) {
-              setState(() {
-                _selectedDay = d;
-                _focusedDay = d;
-              });
-              _loadData();
-            },
+          Row(
+            children: [
+              Expanded(
+                child: DateSelector(
+                  selected: _selectedDay!,
+                  onChanged: (d) {
+                    setState(() {
+                      _selectedDay = d;
+                      _focusedDay = d;
+                    });
+                    _loadData();
+                  },
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  final today = DateTime.now();
+                  setState(() {
+                    _selectedDay = today;
+                    _focusedDay = today;
+                  });
+                  _loadData();
+                },
+                child: const Text('Today'),
+              ),
+            ],
           ),
           TableCalendar(
             firstDay: DateTime.utc(2000, 1, 1),
@@ -284,22 +290,10 @@ class _CalendarPageState extends State<CalendarPage> {
           ),
         ],
       ),
-      floatingActionButton: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          FloatingActionButton.extended(
-            heroTag: 'suggest',
-            onPressed: _showSuggestions,
-            label: const Text('Suggest Tasks'),
-            icon: const Icon(Icons.lightbulb),
-          ),
-          const SizedBox(height: 8),
-          FloatingActionButton(
-            heroTag: 'add',
-            onPressed: () => _openTaskForm(),
-            child: const Icon(Icons.add),
-          ),
-        ],
+      floatingActionButton: FloatingActionButton(
+        heroTag: 'add',
+        onPressed: () => _openTaskForm(),
+        child: const Icon(Icons.add),
       ),
     );
   }
