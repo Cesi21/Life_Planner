@@ -206,7 +206,7 @@ class _CalendarPageState extends State<CalendarPage> {
                     final completed =
                         _tasks.where((t) => t.isCompleted).length +
                             _routineDone.values.where((d) => d).length;
-                    final progress = total == 0 ? 0 : completed / total;
+                    final progress = total == 0 ? 0.0 : completed / total;
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
