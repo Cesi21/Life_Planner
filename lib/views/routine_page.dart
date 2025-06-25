@@ -35,9 +35,11 @@ class _RoutinePageState extends State<RoutinePage> {
     final nameController = TextEditingController(text: routine?.title ?? '');
     RepeatType type = routine?.repeatType ?? RepeatType.daily;
     Set<int> selected = {
-      ...(routine?.weekdays ?? (type == RepeatType.daily ? [1,2,3,4,5,6,7] : []))
+      ...(routine?.weekdays ?? (type == RepeatType.daily ? [1, 2, 3, 4, 5, 6, 7] : []))
     };
     bool active = routine?.isActive ?? true;
+    final durationController =
+        TextEditingController(text: routine?.durationMinutes?.toString() ?? '');
 
     final result = await showModalBottomSheet<String>(
       context: context,
@@ -108,6 +110,12 @@ class _RoutinePageState extends State<RoutinePage> {
                         padding: const EdgeInsets.symmetric(vertical: 8),
                         child: daySelector(),
                       ),
+                    TextField(
+                      controller: durationController,
+                      keyboardType: TextInputType.number,
+                      decoration:
+                          const InputDecoration(labelText: 'Duration (minutes)'),
+                    ),
                     SwitchListTile(
                       title: const Text('Active'),
                       value: active,
@@ -160,12 +168,26 @@ class _RoutinePageState extends State<RoutinePage> {
           list.addAll(selected.toList()..sort());
           break;
       }
+      int? dur;
+      if (durationController.text.trim().isNotEmpty) {
+        final val = int.tryParse(durationController.text.trim());
+        if (val == null || val < 5 || val > 300) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Duration must be between 5 and 300')),
+            );
+          }
+          return;
+        }
+        dur = val;
+      }
       if (isNew) {
         final r = Routine(
           title: nameController.text,
           repeatType: type,
           weekdays: list,
           isActive: active,
+          durationMinutes: dur,
         );
         await _service.addRoutine(r);
       } else {
@@ -173,6 +195,7 @@ class _RoutinePageState extends State<RoutinePage> {
         routine.repeatType = type;
         routine.weekdays = list;
         routine.isActive = active;
+        routine.durationMinutes = dur;
         await _service.updateRoutine(routine);
       }
       _load();
@@ -182,6 +205,7 @@ class _RoutinePageState extends State<RoutinePage> {
   Widget _buildItem(Routine r) {
     return RoutineTile(
       routine: r,
+      showActiveSwitch: true,
       onActiveChanged: (val) async {
         r.isActive = val;
         await _service.updateRoutine(r);

@@ -35,17 +35,24 @@ class Routine extends HiveObject {
   @HiveField(4)
   bool isActive;
 
+  @HiveField(5)
+  int? durationMinutes;
+
   Routine({
     required this.title,
     required this.repeatType,
     required this.weekdays,
     this.timeMinutes,
     this.isActive = true,
+    this.durationMinutes,
   });
 
   TimeOfDay? get time =>
       timeMinutes == null ? null : TimeOfDay(hour: timeMinutes! ~/ 60, minute: timeMinutes! % 60);
   set time(TimeOfDay? t) => timeMinutes = t == null ? null : t.hour * 60 + t.minute;
+
+  Duration? get duration => durationMinutes == null ? null : Duration(minutes: durationMinutes!);
+  set duration(Duration? d) => durationMinutes = d?.inMinutes;
 }
 
 class RoutineAdapter extends TypeAdapter<Routine> {
@@ -60,6 +67,7 @@ class RoutineAdapter extends TypeAdapter<Routine> {
       weekdays: List<int>.from(reader.readList()),
       timeMinutes: reader.readBool() ? reader.readInt() : null,
       isActive: reader.readBool(),
+      durationMinutes: reader.readBool() ? reader.readInt() : null,
     );
   }
 
@@ -75,5 +83,11 @@ class RoutineAdapter extends TypeAdapter<Routine> {
       writer.writeBool(false);
     }
     writer.writeBool(obj.isActive);
+    if (obj.durationMinutes != null) {
+      writer.writeBool(true);
+      writer.writeInt(obj.durationMinutes!);
+    } else {
+      writer.writeBool(false);
+    }
   }
 }
