@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'models/task.dart';
 import 'models/routine.dart';
+import 'models/tag.dart';
 import 'views/calendar_page.dart';
 import 'views/routine_page.dart';
 import 'views/statistics_page.dart';
 import 'views/settings_page.dart';
+import 'views/history_page.dart';
 import 'models/app_theme.dart';
 import 'services/notification_service.dart';
 
@@ -15,11 +17,15 @@ Future<void> main() async {
   Hive.registerAdapter(TaskAdapter());
   Hive.registerAdapter(RepeatTypeAdapter());
   Hive.registerAdapter(RoutineAdapter());
+  Hive.registerAdapter(TagAdapter());
   await Hive.openBox<Task>('tasks');
   await Hive.openBox<Routine>('routines');
   await Hive.openBox<List>('routine_done');
+  await Hive.openBox('routine_streaks');
+  await Hive.openBox<Tag>('tags');
   await Hive.openBox('settings');
   await NotificationService().init();
+  await NotificationService().rescheduleEveryMorning();
 
   runApp(const PlannerApp());
 }
@@ -70,6 +76,7 @@ class _HomePageState extends State<HomePage> {
   final List<Widget> _pages = const [
     CalendarPage(),
     RoutinePage(),
+    HistoryPage(),
     StatisticsPage(),
     SettingsPage(),
   ];
@@ -87,6 +94,7 @@ class _HomePageState extends State<HomePage> {
         destinations: const [
           NavigationDestination(icon: Icon(Icons.calendar_today), label: 'Calendar'),
           NavigationDestination(icon: Icon(Icons.repeat), label: 'Routines'),
+          NavigationDestination(icon: Icon(Icons.history), label: 'History'),
           NavigationDestination(icon: Icon(Icons.bar_chart), label: 'Stats'),
           NavigationDestination(icon: Icon(Icons.settings), label: 'Settings'),
         ],

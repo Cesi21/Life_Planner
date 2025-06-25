@@ -27,4 +27,14 @@ void main() {
     expect(tasks.length, 1);
     expect(tasks.first.title, 'test');
   });
+
+  test('mark complete', () async {
+    final service = TaskService();
+    final task = Task(title: 't', date: DateTime(2020));
+    await service.addTask(task);
+    task.isCompleted = true;
+    await service.updateTask(task);
+    final tasks = await service.getTasksForDay(DateTime(2020));
+    expect(tasks.first.isCompleted, true);
+  });
 }

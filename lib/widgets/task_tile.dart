@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/task.dart';
+import '../models/tag.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
 class TaskTile extends StatelessWidget {
   final Task task;
@@ -35,15 +37,22 @@ class TaskTile extends StatelessWidget {
           children: [
             Expanded(child: Text(task.title, style: textStyle)),
             if (task.tag != null)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                margin: const EdgeInsets.only(left: 4),
-                decoration: BoxDecoration(
-                  color: Colors.blueAccent.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(task.tag!, style: const TextStyle(fontSize: 12)),
-              ),
+              Builder(builder: (context) {
+                final box = Hive.box<Tag>('tags');
+                final tag = box.values.firstWhere(
+                  (t) => t.name == task.tag,
+                  orElse: () => Tag(name: '', color: Colors.blue),
+                );
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  margin: const EdgeInsets.only(left: 4),
+                  decoration: BoxDecoration(
+                    color: tag.color.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(task.tag!, style: const TextStyle(fontSize: 12)),
+                );
+              }),
             IconButton(
               icon: const Icon(Icons.edit, size: 18),
               onPressed: onEdit,

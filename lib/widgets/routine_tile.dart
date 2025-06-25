@@ -33,6 +33,7 @@ class _RoutineTileState extends State<RoutineTile> {
   Timer? _timer;
   int _remaining = 0;
   bool _paused = false;
+  int _streak = 0;
 
   bool get _running => _timer?.isActive ?? false;
 
@@ -42,6 +43,19 @@ class _RoutineTileState extends State<RoutineTile> {
     return now.year == widget.date!.year &&
         now.month == widget.date!.month &&
         now.day == widget.date!.day;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    final remaining = RoutineService().getRemaining(widget.routine.key.toString());
+    if (remaining != null) {
+      _remaining = remaining;
+      _paused = true;
+    }
+    RoutineService()
+        .getCurrentStreak(widget.routine.key.toString())
+        .then((value) => setState(() => _streak = value));
   }
 
   @override
@@ -69,6 +83,7 @@ class _RoutineTileState extends State<RoutineTile> {
       NotificationService()
           .cancelRoutineNotification(widget.routine.key.toString(), widget.date!);
     }
+    RoutineService().clearRemaining(widget.routine.key.toString());
     setState(() {
       _remaining = 0;
       _paused = false;
@@ -107,6 +122,7 @@ class _RoutineTileState extends State<RoutineTile> {
       NotificationService()
           .cancelRoutineNotification(widget.routine.key.toString(), widget.date!);
     }
+    RoutineService().saveRemaining(widget.routine.key.toString(), _remaining);
     setState(() {
       _paused = true;
     });
@@ -118,6 +134,7 @@ class _RoutineTileState extends State<RoutineTile> {
     setState(() {
       _paused = false;
     });
+    RoutineService().clearRemaining(widget.routine.key.toString());
     if (widget.date != null) {
       await NotificationService().scheduleRoutineTimerNotification(
           widget.routine, widget.date!, Duration(seconds: _remaining));
@@ -129,6 +146,7 @@ class _RoutineTileState extends State<RoutineTile> {
       _stopTimer();
       await RoutineService()
           .markRoutineDone(widget.routine.key.toString(), widget.date!);
+      RoutineService().clearRemaining(widget.routine.key.toString());
       widget.onCompleted?.call(true);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -148,6 +166,7 @@ class _RoutineTileState extends State<RoutineTile> {
       _stopTimer();
       await RoutineService()
           .unmarkRoutineDone(widget.routine.key.toString(), widget.date!);
+      RoutineService().clearRemaining(widget.routine.key.toString());
       widget.onCompleted?.call(false);
       setState(() {});
     }
@@ -168,6 +187,23 @@ class _RoutineTileState extends State<RoutineTile> {
             ),
           );
         }),
+      ),
+    );
+  }
+
+  Widget _buildStreak() {
+    final icon = _streak > 0
+        ? Icons.local_fire_department
+        : Icons.local_fire_department_outlined;
+    return Tooltip(
+      message: 'Current streak',
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: Colors.orange),
+          const SizedBox(width: 2),
+          Text('$_streak', style: const TextStyle(fontSize: 12)),
+        ],
       ),
     );
   }
@@ -275,7 +311,13 @@ class _RoutineTileState extends State<RoutineTile> {
     final child = ListTile(
       leading: done ? const Icon(Icons.check_circle, color: Colors.green) : null,
       title: Text(widget.routine.title, style: titleStyle),
-      subtitle: _buildDays(),
+      subtitle: Row(
+        children: [
+          _buildDays(),
+          const SizedBox(width: 8),
+          _buildStreak(),
+        ],
+      ),
       trailing: Row(mainAxisSize: MainAxisSize.min, children: widgets),
       onTap: widget.onTap,
       onLongPress: _isToday ? _reset : null,
