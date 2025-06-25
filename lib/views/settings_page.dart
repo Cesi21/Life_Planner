@@ -10,7 +10,7 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  AppTheme _theme = AppTheme.light;
+  AppTheme _theme = AppTheme.system;
 
   @override
   void initState() {
@@ -32,6 +32,12 @@ class _SettingsPageState extends State<SettingsPage> {
       body: Column(
         children: [
           RadioListTile<AppTheme>(
+            title: const Text('System Default'),
+            value: AppTheme.system,
+            groupValue: _theme,
+            onChanged: (val) => _setTheme(val!),
+          ),
+          RadioListTile<AppTheme>(
             title: const Text('Light Theme'),
             value: AppTheme.light,
             groupValue: _theme,
@@ -40,12 +46,6 @@ class _SettingsPageState extends State<SettingsPage> {
           RadioListTile<AppTheme>(
             title: const Text('Dark Theme'),
             value: AppTheme.dark,
-            groupValue: _theme,
-            onChanged: (val) => _setTheme(val!),
-          ),
-          RadioListTile<AppTheme>(
-            title: const Text('Custom Theme'),
-            value: AppTheme.custom,
             groupValue: _theme,
             onChanged: (val) => _setTheme(val!),
           ),

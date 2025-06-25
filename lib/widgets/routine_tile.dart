@@ -43,9 +43,25 @@ class _RoutineTileState extends State<RoutineTile> {
   }
 
   @override
+  void didUpdateWidget(covariant RoutineTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.date != oldWidget.date && _running) {
+      _stopTimer();
+    }
+  }
+
+  @override
   void dispose() {
     _timer?.cancel();
     super.dispose();
+  }
+
+  void _stopTimer() {
+    _timer?.cancel();
+    _timer = null;
+    setState(() {
+      _remaining = 0;
+    });
   }
 
   Future<void> _startTimer() async {
@@ -57,7 +73,7 @@ class _RoutineTileState extends State<RoutineTile> {
     _timer = Timer.periodic(const Duration(seconds: 1), (t) {
       if (_remaining <= 1) {
         t.cancel();
-        _complete();
+        _manualComplete();
       } else {
         setState(() => _remaining--);
       }
@@ -66,6 +82,7 @@ class _RoutineTileState extends State<RoutineTile> {
 
   Future<void> _complete() async {
     if (widget.date != null) {
+      _stopTimer();
       await RoutineService()
           .markRoutineDone(widget.routine.key.toString(), widget.date!);
       widget.onCompleted?.call(true);
@@ -78,8 +95,13 @@ class _RoutineTileState extends State<RoutineTile> {
     }
   }
 
+  Future<void> _manualComplete() async {
+    await _complete();
+  }
+
   Future<void> _reset() async {
     if (widget.date != null) {
+      _stopTimer();
       await RoutineService()
           .unmarkRoutineDone(widget.routine.key.toString(), widget.date!);
       widget.onCompleted?.call(false);
@@ -88,18 +110,21 @@ class _RoutineTileState extends State<RoutineTile> {
   }
 
   Widget _buildDays() {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: List.generate(7, (i) {
-        final active = widget.routine.weekdays.contains(i + 1);
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 2),
-          child: CircleAvatar(
-            radius: 6,
-            backgroundColor: active ? Colors.green : Colors.grey.shade300,
-          ),
-        );
-      }),
+    return Tooltip(
+      message: 'Green dots = days this routine is scheduled',
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: List.generate(7, (i) {
+          final active = widget.routine.weekdays.contains(i + 1);
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2),
+            child: CircleAvatar(
+              radius: 6,
+              backgroundColor: active ? Colors.green : Colors.grey.shade300,
+            ),
+          );
+        }),
+      ),
     );
   }
 
@@ -125,15 +150,36 @@ class _RoutineTileState extends State<RoutineTile> {
   Widget build(BuildContext context) {
     final done = widget.completed ?? false;
     final widgets = <Widget>[];
-    if (widget.routine.duration != null && _isToday) {
-      widgets.add(
-        _running
-            ? _buildTimerWidget()
-            : IconButton(
-                icon: const Icon(Icons.play_arrow),
-                onPressed: done ? null : _startTimer,
-              ),
-      );
+    if (widget.routine.duration != null) {
+      if (_running) {
+        widgets.addAll([
+          _buildTimerWidget(),
+          IconButton(
+            icon: const Icon(Icons.stop),
+            tooltip: 'Stop',
+            onPressed: _stopTimer,
+          ),
+          IconButton(
+            icon: const Icon(Icons.check),
+            tooltip: 'Mark as done',
+            onPressed: done ? null : _manualComplete,
+          ),
+        ]);
+      } else if (_isToday) {
+        widgets.add(
+          IconButton(
+            icon: const Icon(Icons.play_arrow),
+            onPressed: done ? null : _startTimer,
+          ),
+        );
+      } else {
+        widgets.add(
+          IconButton(
+            icon: const Icon(Icons.play_arrow),
+            onPressed: null,
+          ),
+        );
+      }
     }
     if (widget.showActiveSwitch) {
       widgets.add(
@@ -146,18 +192,20 @@ class _RoutineTileState extends State<RoutineTile> {
       widgets.add(
         Checkbox(
           value: done,
-          onChanged: _running || !_isToday
+          onChanged: _running || !_isToday || done
               ? null
               : (val) => widget.onCompleted?.call(val ?? false),
         ),
       );
     }
 
+    final baseColor = widget.showActiveSwitch
+        ? null
+        : Colors.purpleAccent.withOpacity(0.1);
     return Card(
-      color: widget.showActiveSwitch
-          ? null
-          : Colors.purpleAccent.withOpacity(0.1),
+      color: done ? Colors.grey.shade300 : baseColor,
       child: ListTile(
+        leading: done ? const Icon(Icons.check_circle, color: Colors.green) : null,
         title: Text(widget.routine.title),
         subtitle: _buildDays(),
         trailing: Row(mainAxisSize: MainAxisSize.min, children: widgets),
