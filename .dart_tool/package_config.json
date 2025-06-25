@@ -74,6 +74,12 @@
       "languageVersion": "3.7"
     },
     {
+      "name": "file",
+      "rootUri": "file:///C:/Users/Mitja/AppData/Local/Pub/Cache/hosted/pub.dev/file-7.0.1",
+      "packageUri": "lib/",
+      "languageVersion": "3.0"
+    },
+    {
       "name": "fl_chart",
       "rootUri": "file:///C:/Users/Mitja/AppData/Local/Pub/Cache/hosted/pub.dev/fl_chart-0.66.2",
       "packageUri": "lib/",
@@ -82,6 +88,12 @@
     {
       "name": "flutter",
       "rootUri": "file:///C:/flutter/packages/flutter",
+      "packageUri": "lib/",
+      "languageVersion": "3.7"
+    },
+    {
+      "name": "flutter_driver",
+      "rootUri": "file:///C:/flutter/packages/flutter_driver",
       "packageUri": "lib/",
       "languageVersion": "3.7"
     },
@@ -116,6 +128,12 @@
       "languageVersion": "3.7"
     },
     {
+      "name": "fuchsia_remote_debug_protocol",
+      "rootUri": "file:///C:/flutter/packages/fuchsia_remote_debug_protocol",
+      "packageUri": "lib/",
+      "languageVersion": "3.7"
+    },
+    {
       "name": "hive",
       "rootUri": "file:///C:/Users/Mitja/AppData/Local/Pub/Cache/hosted/pub.dev/hive-2.2.3",
       "packageUri": "lib/",
@@ -126,6 +144,12 @@
       "rootUri": "file:///C:/Users/Mitja/AppData/Local/Pub/Cache/hosted/pub.dev/hive_flutter-1.1.0",
       "packageUri": "lib/",
       "languageVersion": "2.12"
+    },
+    {
+      "name": "integration_test",
+      "rootUri": "file:///C:/flutter/packages/integration_test",
+      "packageUri": "lib/",
+      "languageVersion": "3.7"
     },
     {
       "name": "intl",
@@ -236,6 +260,12 @@
       "languageVersion": "3.0"
     },
     {
+      "name": "process",
+      "rootUri": "file:///C:/Users/Mitja/AppData/Local/Pub/Cache/hosted/pub.dev/process-5.0.3",
+      "packageUri": "lib/",
+      "languageVersion": "3.3"
+    },
+    {
       "name": "simple_gesture_detector",
       "rootUri": "file:///C:/Users/Mitja/AppData/Local/Pub/Cache/hosted/pub.dev/simple_gesture_detector-0.2.1",
       "packageUri": "lib/",
@@ -270,6 +300,12 @@
       "rootUri": "file:///C:/Users/Mitja/AppData/Local/Pub/Cache/hosted/pub.dev/string_scanner-1.4.1",
       "packageUri": "lib/",
       "languageVersion": "3.1"
+    },
+    {
+      "name": "sync_http",
+      "rootUri": "file:///C:/Users/Mitja/AppData/Local/Pub/Cache/hosted/pub.dev/sync_http-0.3.1",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
     },
     {
       "name": "table_calendar",
@@ -312,6 +348,12 @@
       "rootUri": "file:///C:/Users/Mitja/AppData/Local/Pub/Cache/hosted/pub.dev/vm_service-15.0.0",
       "packageUri": "lib/",
       "languageVersion": "3.3"
+    },
+    {
+      "name": "webdriver",
+      "rootUri": "file:///C:/Users/Mitja/AppData/Local/Pub/Cache/hosted/pub.dev/webdriver-3.1.0",
+      "packageUri": "lib/",
+      "languageVersion": "3.1"
     },
     {
       "name": "xdg_directories",
