@@ -1,7 +1,8 @@
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/task.dart';
+import 'i_task_service.dart';
 
-class TaskService {
+class TaskService implements ITaskService {
   static const String boxName = 'tasks';
 
   Future<Box<Task>> _openBox() async {
@@ -33,5 +34,14 @@ class TaskService {
 
   Future<void> deleteTask(Task task) async {
     await task.delete();
+  }
+
+  @override
+  Future<List<Task>> suggestTasks() async {
+    return [
+      Task(title: 'Suggested Task 1', date: DateTime.now()),
+      Task(title: 'Suggested Task 2', date: DateTime.now()),
+      Task(title: 'Suggested Task 3', date: DateTime.now()),
+    ];
   }
 }
