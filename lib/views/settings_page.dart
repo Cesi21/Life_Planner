@@ -3,6 +3,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import '../models/app_theme.dart';
 import '../models/tag.dart';
 import '../services/backup_service.dart';
+import '../services/tag_service.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 
@@ -15,7 +16,7 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   AppTheme _theme = AppTheme.system;
-  late Box<Tag> _tagBox;
+  final TagService _tagService = TagService();
   List<Tag> _tags = [];
 
   @override
@@ -23,7 +24,6 @@ class _SettingsPageState extends State<SettingsPage> {
     super.initState();
     final box = Hive.box('settings');
     _theme = AppTheme.values[box.get('theme', defaultValue: 0) as int];
-    _tagBox = Hive.box<Tag>('tags');
     _loadTags();
   }
 
@@ -33,8 +33,8 @@ class _SettingsPageState extends State<SettingsPage> {
     setState(() => _theme = val);
   }
 
-  void _loadTags() {
-    _tags = _tagBox.values.toList();
+  void _loadTags() async {
+    _tags = await _tagService.getAllTags();
     setState(() {});
   }
 
@@ -86,9 +86,71 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
     );
     if (result == true && nameController.text.isNotEmpty) {
-      await _tagBox.add(Tag(name: nameController.text, color: selected));
+      final success =
+          await _tagService.addTag(Tag(name: nameController.text, color: selected));
+      if (!success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Tag name already exists')),
+        );
+      }
       _loadTags();
     }
+  }
+
+  Future<void> _editTag(Tag tag) async {
+    final nameController = TextEditingController(text: tag.name);
+    Color selected = tag.color;
+    final colors = [Colors.red, Colors.green, Colors.blue, Colors.orange, Colors.purple, Colors.teal];
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Tag'),
+        content: StatefulBuilder(
+          builder: (context, setDialog) => Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Name')),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 4,
+                children: colors.map((c) => GestureDetector(
+                      onTap: () => setDialog(() => selected = c),
+                      child: Container(
+                        width: 24,
+                        height: 24,
+                        decoration: BoxDecoration(
+                          color: c,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: selected == c ? Colors.black : Colors.transparent),
+                        ),
+                      ),
+                    )).toList(),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Save')),
+        ],
+      ),
+    );
+    if (result == true && nameController.text.isNotEmpty) {
+      tag.name = nameController.text;
+      tag.color = selected;
+      final success = await _tagService.updateTag(tag);
+      if (!success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Tag name already exists')),
+        );
+      }
+      _loadTags();
+    }
+  }
+
+  Future<void> _deleteTag(Tag tag) async {
+    await _tagService.deleteTag(tag);
+    _loadTags();
   }
 
   Future<void> _export() async {
@@ -156,6 +218,19 @@ class _SettingsPageState extends State<SettingsPage> {
           ..._tags.map((t) => ListTile(
                 leading: CircleAvatar(backgroundColor: t.color),
                 title: Text(t.name),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.edit, size: 18),
+                      onPressed: () => _editTag(t),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete, size: 18),
+                      onPressed: () => _deleteTag(t),
+                    ),
+                  ],
+                ),
               )),
           const Divider(),
           ListTile(

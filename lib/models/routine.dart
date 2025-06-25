@@ -38,6 +38,9 @@ class Routine extends HiveObject {
   @HiveField(5)
   int? durationMinutes;
 
+  @HiveField(6)
+  String? tagId;
+
   Routine({
     required this.title,
     required this.repeatType,
@@ -45,6 +48,7 @@ class Routine extends HiveObject {
     this.timeMinutes,
     this.isActive = true,
     this.durationMinutes,
+    this.tagId,
   });
 
   TimeOfDay? get time =>
@@ -68,6 +72,7 @@ class RoutineAdapter extends TypeAdapter<Routine> {
       timeMinutes: reader.readBool() ? reader.readInt() : null,
       isActive: reader.readBool(),
       durationMinutes: reader.readBool() ? reader.readInt() : null,
+      tagId: reader.readBool() ? reader.readString() : null,
     );
   }
 
@@ -86,6 +91,12 @@ class RoutineAdapter extends TypeAdapter<Routine> {
     if (obj.durationMinutes != null) {
       writer.writeBool(true);
       writer.writeInt(obj.durationMinutes!);
+    } else {
+      writer.writeBool(false);
+    }
+    if (obj.tagId != null) {
+      writer.writeBool(true);
+      writer.writeString(obj.tagId!);
     } else {
       writer.writeBool(false);
     }

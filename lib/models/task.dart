@@ -18,6 +18,9 @@ class Task extends HiveObject {
   @HiveField(4)
   int? reminderMinutes;
 
+  @HiveField(5)
+  String? tagId;
+
   TimeOfDay? get reminderTime => reminderMinutes == null
       ? null
       : TimeOfDay(hour: reminderMinutes! ~/ 60, minute: reminderMinutes! % 60);
@@ -30,6 +33,7 @@ class Task extends HiveObject {
     this.isCompleted = false,
     this.tag,
     this.reminderMinutes,
+    this.tagId,
   });
 }
 
@@ -45,6 +49,7 @@ class TaskAdapter extends TypeAdapter<Task> {
       isCompleted: reader.readBool(),
       tag: reader.readBool() ? reader.readString() : null,
       reminderMinutes: reader.readBool() ? reader.readInt() : null,
+      tagId: reader.readBool() ? reader.readString() : null,
     );
   }
 
@@ -62,6 +67,12 @@ class TaskAdapter extends TypeAdapter<Task> {
     if (obj.reminderMinutes != null) {
       writer.writeBool(true);
       writer.writeInt(obj.reminderMinutes!);
+    } else {
+      writer.writeBool(false);
+    }
+    if (obj.tagId != null) {
+      writer.writeBool(true);
+      writer.writeString(obj.tagId!);
     } else {
       writer.writeBool(false);
     }

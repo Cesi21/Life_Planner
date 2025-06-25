@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../models/task.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../services/task_service.dart';
-import "../models/routine.dart";
+import '../models/routine.dart';
 import '../services/routine_service.dart';
 import '../services/notification_service.dart';
+import '../services/tag_service.dart';
+import '../models/tag.dart';
 import '../widgets/task_tile.dart';
 import '../widgets/date_selector.dart';
 import '../widgets/routine_tile.dart';
@@ -21,14 +22,15 @@ class CalendarPage extends StatefulWidget {
 class _CalendarPageState extends State<CalendarPage> {
   final TaskService _service = TaskService();
   final RoutineService _routineService = RoutineService();
+  final TagService _tagService = TagService();
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
   List<Task> _tasks = [];
   int _routineCount = 0;
   List<Routine> _routines = [];
   final Map<int, bool> _routineDone = {};
-  String? _selectedTag;
-  List<String> _availableTags = [];
+  String? _selectedTagId;
+  List<Tag> _availableTags = [];
   bool _successShown = false;
   late final ValueListenable _routineListenable;
 
@@ -49,18 +51,16 @@ class _CalendarPageState extends State<CalendarPage> {
 
   Future<void> _loadData() async {
     if (_selectedDay == null) return;
-    final tasks = await _service.getTasksForDay(_selectedDay!, tag: _selectedTag);
-    final all = await _service.getTasksForDay(_selectedDay!);
-    final routines = await _routineService.getRoutinesForDay(_selectedDay!);
+    final tasks =
+        await _service.getTasksForDay(_selectedDay!, tagId: _selectedTagId);
+    final routines =
+        await _routineService.getRoutinesForDay(_selectedDay!, tagId: _selectedTagId);
     final Map<int, bool> doneMap = {};
     for (final r in routines) {
       doneMap[r.key as int] =
           await _routineService.isRoutineDone(r.key.toString(), _selectedDay!);
     }
-    final tags = <String>{};
-    for (final t in all) {
-      if (t.tag != null) tags.add(t.tag!);
-    }
+    final tags = await _tagService.getAllTags();
     setState(() {
       _tasks = tasks;
       _routineCount = routines.length;
@@ -68,7 +68,7 @@ class _CalendarPageState extends State<CalendarPage> {
       _routineDone
         ..clear()
         ..addAll(doneMap);
-      _availableTags = tags.toList();
+      _availableTags = tags;
     });
     final allDone = _routineDone.values.every((d) => d) && _routines.isNotEmpty;
     if (mounted) {
@@ -85,8 +85,9 @@ class _CalendarPageState extends State<CalendarPage> {
 
   Future<void> _openTaskForm({Task? task}) async {
     final titleController = TextEditingController(text: task?.title ?? '');
-    final tagController = TextEditingController(text: task?.tag ?? '');
+    String? tagId = task?.tagId;
     TimeOfDay? reminder = task?.reminderTime;
+    final tags = await _tagService.getAllTags();
 
     final result = await showDialog<bool>(
       context: context,
@@ -100,9 +101,17 @@ class _CalendarPageState extends State<CalendarPage> {
                 controller: titleController,
                 decoration: const InputDecoration(labelText: 'Title'),
               ),
-              TextField(
-                controller: tagController,
+              DropdownButtonFormField<String>(
+                value: tagId,
                 decoration: const InputDecoration(labelText: 'Tag'),
+                items: [
+                  const DropdownMenuItem(value: null, child: Text('None')),
+                  ...tags.map((t) => DropdownMenuItem(
+                        value: t.key.toString(),
+                        child: Text(t.name),
+                      )),
+                ],
+                onChanged: (val) => setStateDialog(() => tagId = val),
               ),
               const SizedBox(height: 8),
               Row(
@@ -146,14 +155,14 @@ class _CalendarPageState extends State<CalendarPage> {
         final newTask = Task(
           title: titleController.text,
           date: _selectedDay!,
-          tag: tagController.text.isEmpty ? null : tagController.text,
+          tagId: tagId,
         );
         newTask.reminderTime = reminder;
         await _service.addTask(newTask);
         await NotificationService().scheduleTaskReminder(newTask);
       } else {
         task.title = titleController.text;
-        task.tag = tagController.text.isEmpty ? null : tagController.text;
+        task.tagId = tagId;
         task.reminderTime = reminder;
         await _service.updateTask(task);
         await NotificationService().scheduleTaskReminder(task);
@@ -167,11 +176,7 @@ class _CalendarPageState extends State<CalendarPage> {
       color: Colors.greenAccent.withOpacity(0.1),
       child: TaskTile(
         task: task,
-        onCompleted: (value) async {
-          task.isCompleted = value ?? false;
-          await _service.updateTask(task);
-          _loadData();
-        },
+        onCompleted: (_) => _loadData(),
         onEdit: () => _openTaskForm(task: task),
         onDelete: () async {
           await _service.deleteTask(task);
@@ -187,14 +192,7 @@ class _CalendarPageState extends State<CalendarPage> {
       routine: r,
       completed: done,
       date: _selectedDay!,
-      onCompleted: (val) async {
-        if (val) {
-          await _routineService.markRoutineDone(r.key.toString(), _selectedDay!);
-        } else {
-          await _routineService.unmarkRoutineDone(r.key.toString(), _selectedDay!);
-        }
-        _loadData();
-      },
+      onCompleted: (_) => _loadData(),
     );
   }
 
@@ -280,17 +278,20 @@ class _CalendarPageState extends State<CalendarPage> {
               children: [
                 const Text('Tag:'),
                 const SizedBox(width: 8),
-                DropdownButton<String>(
-                  value: _selectedTag,
+                DropdownButton<String?>(
+                  value: _selectedTagId,
                   hint: const Text('All'),
                   items: [
                     const DropdownMenuItem(value: null, child: Text('All')),
                     ..._availableTags.map(
-                      (t) => DropdownMenuItem(value: t, child: Text(t)),
+                      (t) => DropdownMenuItem(
+                        value: t.key.toString(),
+                        child: Text(t.name),
+                      ),
                     ),
                   ],
                   onChanged: (val) {
-                    setState(() => _selectedTag = val);
+                    setState(() => _selectedTagId = val);
                     _loadData();
                   },
                 ),
