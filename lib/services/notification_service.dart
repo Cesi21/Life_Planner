@@ -3,9 +3,17 @@ import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import '../models/task.dart';
 import '../models/routine.dart';
+import '../services/task_service.dart';
+import '../services/routine_service.dart';
 
 class NotificationService {
+  NotificationService._();
+  static final NotificationService _instance = NotificationService._();
+  factory NotificationService() => _instance;
+
   final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
+  final TaskService _taskSvc = TaskService();
+  final RoutineService _routineSvc = RoutineService();
 
   Future<void> init() async {
     const AndroidInitializationSettings androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -15,13 +23,14 @@ class NotificationService {
     tz.initializeTimeZones();
   }
 
-  Future<void> scheduleTaskReminder(Task task) async {
-    if (task.reminderMinutes == null) return;
+  Future<int> scheduleTaskReminder(Task task) async {
+    if (task.reminderMinutes == null) return 0;
     final date = DateTime(task.date.year, task.date.month, task.date.day)
         .add(Duration(minutes: task.reminderMinutes!));
     final tz.TZDateTime tzDate = tz.TZDateTime.from(date, tz.local);
+    final id = (task.key as int? ?? task.hashCode).abs();
     await _plugin.zonedSchedule(
-      task.key as int? ?? 0,
+      id,
       task.title,
       '',
       tzDate,
@@ -29,11 +38,12 @@ class NotificationService {
         android: AndroidNotificationDetails('tasks', 'Tasks'),
         iOS: DarwinNotificationDetails(),
       ),
-      androidAllowWhileIdle: true,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
       matchDateTimeComponents: DateTimeComponents.time,
     );
+    return id;
   }
 
   int _routineId(String routineKey, DateTime date) {
@@ -53,7 +63,7 @@ class NotificationService {
         android: AndroidNotificationDetails('routines', 'Routines'),
         iOS: DarwinNotificationDetails(),
       ),
-      androidAllowWhileIdle: true,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
       matchDateTimeComponents: DateTimeComponents.time,
@@ -62,6 +72,10 @@ class NotificationService {
 
   Future<void> cancelRoutineNotification(String routineKey, DateTime dateOccur) async {
     await _plugin.cancel(_routineId(routineKey, dateOccur));
+  }
+
+  Future<void> cancelNotification(int id) async {
+    await _plugin.cancel(id);
   }
 
   Future<void> scheduleRoutineReminder(Routine r, DateTime nextOccur) async {
@@ -78,7 +92,7 @@ class NotificationService {
         android: AndroidNotificationDetails('routines_rem', 'Routine Reminders'),
         iOS: DarwinNotificationDetails(),
       ),
-      androidAllowWhileIdle: true,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
       matchDateTimeComponents: DateTimeComponents.time,
@@ -91,12 +105,12 @@ class NotificationService {
 
   Future<void> rescheduleEveryMorning() async {
     final now = DateTime.now();
-    await TaskService().moveIncompleteTasksToToday();
-    final tasks = await TaskService().getTasksForDay(now);
+    await _taskSvc.moveIncompleteTasksToToday();
+    final tasks = await _taskSvc.getTasksForDay(now);
     for (final t in tasks) {
       await scheduleTaskReminder(t);
     }
-    final routines = await RoutineService().getRoutinesForDay(now);
+    final routines = await _routineSvc.getRoutinesForDay(now);
     for (final r in routines) {
       await scheduleRoutineReminder(r, now);
     }
