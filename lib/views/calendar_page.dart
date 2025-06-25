@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../models/task.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -172,8 +173,9 @@ class _CalendarPageState extends State<CalendarPage> {
   }
 
   Widget _buildTaskItem(Task task) {
+    final baseColor = Colors.greenAccent;
     return Card(
-      color: Colors.greenAccent.withOpacity(0.1),
+      color: baseColor.withAlpha((baseColor.alpha * 0.1).round()),
       child: TaskTile(
         task: task,
         onCompleted: (_) => _loadData(),

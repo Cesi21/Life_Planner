@@ -8,11 +8,18 @@ void main() {
 
   setUp(() {
     TestWidgetsFlutterBinding.ensureInitialized();
-    channel.setMockMethodCallHandler((_) async {});
+    final TestDefaultBinaryMessenger binding =
+        TestDefaultBinaryMessengerBinding.instance;
+    binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      channel,
+      (call) async => null,
+    );
   });
 
   tearDown(() {
-    channel.setMockMethodCallHandler(null);
+    final TestDefaultBinaryMessenger binding =
+        TestDefaultBinaryMessengerBinding.instance;
+    binding.defaultBinaryMessenger.setMockMethodCallHandler(channel, null);
   });
 
   test('scheduleTaskReminder returns id', () async {

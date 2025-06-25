@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 
+extension ColorHex on Color {
+  int toARGB32() => value;
+}
+
 @HiveType(typeId: 3)
 class Tag extends HiveObject {
   @HiveField(0)
@@ -9,9 +13,9 @@ class Tag extends HiveObject {
   int colorValue;
 
   Color get color => Color(colorValue);
-  set color(Color c) => colorValue = c.value;
+  set color(Color c) => colorValue = c.toARGB32();
 
-  Tag({required this.name, required Color color}) : colorValue = color.value;
+  Tag({required this.name, required Color color}) : colorValue = color.toARGB32();
 }
 
 class TagAdapter extends TypeAdapter<Tag> {

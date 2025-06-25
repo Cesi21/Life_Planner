@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/task.dart';
-import '../models/tag.dart';
 import '../services/tag_service.dart';
+import '../services/task_service.dart';
 
 class TaskTile extends StatefulWidget {
   final Task task;
@@ -22,6 +22,7 @@ class TaskTile extends StatefulWidget {
 }
 
 class _TaskTileState extends State<TaskTile> {
+  final TaskService _taskSvc = TaskService();
   late ValueNotifier<bool> _done;
 
   @override
@@ -77,7 +78,10 @@ class _TaskTileState extends State<TaskTile> {
                         const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     margin: const EdgeInsets.only(left: 4),
                     decoration: BoxDecoration(
-                      color: tag.color.withOpacity(0.2),
+                      color: () {
+                        final c = tag.color;
+                        return c.withAlpha((c.alpha * 0.2).round());
+                      }(),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child:
@@ -91,7 +95,7 @@ class _TaskTileState extends State<TaskTile> {
             ),
             value: done,
             onChanged: (val) async {
-              await TaskService().toggleComplete(widget.task, val ?? false);
+              await _taskSvc.toggleComplete(widget.task, val ?? false);
               _done.value = val ?? false;
               widget.onCompleted?.call(val);
             },
