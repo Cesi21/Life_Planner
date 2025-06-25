@@ -8,7 +8,7 @@ void main() {
 
   setUp(() {
     TestWidgetsFlutterBinding.ensureInitialized();
-    final TestDefaultBinaryMessenger binding =
+    final TestDefaultBinaryMessengerBinding binding =
         TestDefaultBinaryMessengerBinding.instance;
     binding.defaultBinaryMessenger.setMockMethodCallHandler(
       channel,
@@ -17,7 +17,7 @@ void main() {
   });
 
   tearDown(() {
-    final TestDefaultBinaryMessenger binding =
+    final TestDefaultBinaryMessengerBinding binding =
         TestDefaultBinaryMessengerBinding.instance;
     binding.defaultBinaryMessenger.setMockMethodCallHandler(channel, null);
   });
