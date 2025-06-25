@@ -14,11 +14,11 @@ class RoutineService implements IRoutineService {
     return await Hive.openBox<Routine>(boxName);
   }
 
-  Future<Box<Map>> _openCompletionBox() async {
+  Future<Box<List>> _openCompletionBox() async {
     if (Hive.isBoxOpen(completionBox)) {
-      return Hive.box<Map>(completionBox);
+      return Hive.box<List>(completionBox);
     }
-    return await Hive.openBox<Map>(completionBox);
+    return await Hive.openBox<List>(completionBox);
   }
 
   Future<List<Routine>> getRoutines() async {
