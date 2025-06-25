@@ -35,4 +35,17 @@ class TaskService implements ITaskService {
   Future<void> deleteTask(Task task) async {
     await task.delete();
   }
+
+  Future<void> moveIncompleteTasksToToday() async {
+    final box = await _openBox();
+    final now = DateTime.now();
+    final yesterday = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 1));
+    for (final task in box.values) {
+      final day = DateTime(task.date.year, task.date.month, task.date.day);
+      if (day == yesterday && !task.isCompleted) {
+        task.date = now;
+        await task.save();
+      }
+    }
+  }
 }

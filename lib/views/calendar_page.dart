@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../models/task.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import '../services/task_service.dart';
 import "../models/routine.dart";
 import '../services/routine_service.dart';
@@ -28,12 +30,21 @@ class _CalendarPageState extends State<CalendarPage> {
   String? _selectedTag;
   List<String> _availableTags = [];
   bool _successShown = false;
+  late final ValueListenable _routineListenable;
 
   @override
   void initState() {
     super.initState();
     _selectedDay = DateTime.now();
+    _routineListenable = Hive.box<Routine>('routines').listenable();
+    _routineListenable.addListener(_loadData);
     _loadData();
+  }
+
+  @override
+  void dispose() {
+    _routineListenable.removeListener(_loadData);
+    super.dispose();
   }
 
   Future<void> _loadData() async {
@@ -139,12 +150,13 @@ class _CalendarPageState extends State<CalendarPage> {
         );
         newTask.reminderTime = reminder;
         await _service.addTask(newTask);
-        await NotificationService().scheduleTask(newTask);
+        await NotificationService().scheduleTaskReminder(newTask);
       } else {
         task.title = titleController.text;
         task.tag = tagController.text.isEmpty ? null : tagController.text;
         task.reminderTime = reminder;
         await _service.updateTask(task);
+        await NotificationService().scheduleTaskReminder(task);
       }
       _loadData();
     }

@@ -15,7 +15,7 @@ class NotificationService {
     tz.initializeTimeZones();
   }
 
-  Future<void> scheduleTask(Task task) async {
+  Future<void> scheduleTaskReminder(Task task) async {
     if (task.reminderMinutes == null) return;
     final date = DateTime(task.date.year, task.date.month, task.date.day)
         .add(Duration(minutes: task.reminderMinutes!));
@@ -64,7 +64,41 @@ class NotificationService {
     await _plugin.cancel(_routineId(routineKey, dateOccur));
   }
 
-  Future<void> scheduleRoutineReminder(Routine r, DateTime nextOccur) async {}
+  Future<void> scheduleRoutineReminder(Routine r, DateTime nextOccur) async {
+    if (r.timeMinutes == null) return;
+    final date = DateTime(nextOccur.year, nextOccur.month, nextOccur.day)
+        .add(Duration(minutes: r.timeMinutes!));
+    final tzDate = tz.TZDateTime.from(date, tz.local);
+    await _plugin.zonedSchedule(
+      r.key as int? ?? 0,
+      r.title,
+      '',
+      tzDate,
+      const NotificationDetails(
+        android: AndroidNotificationDetails('routines_rem', 'Routine Reminders'),
+        iOS: DarwinNotificationDetails(),
+      ),
+      androidAllowWhileIdle: true,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+      matchDateTimeComponents: DateTimeComponents.time,
+    );
+  }
 
-  Future<void> cancelRoutineReminder(String routineKey) async {}
+  Future<void> cancelRoutineReminder(String routineKey) async {
+    await _plugin.cancel(routineKey.hashCode);
+  }
+
+  Future<void> rescheduleEveryMorning() async {
+    final now = DateTime.now();
+    await TaskService().moveIncompleteTasksToToday();
+    final tasks = await TaskService().getTasksForDay(now);
+    for (final t in tasks) {
+      await scheduleTaskReminder(t);
+    }
+    final routines = await RoutineService().getRoutinesForDay(now);
+    for (final r in routines) {
+      await scheduleRoutineReminder(r, now);
+    }
+  }
 }
