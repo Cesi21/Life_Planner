@@ -13,6 +13,8 @@ class StatsService extends ChangeNotifier {
   late final ValueListenable _completionListenable;
 
   Map<DateTime, double> weekly = {};
+  Map<DateTime, int> tasksCompleted = {};
+  Map<DateTime, int> minutesSpent = {};
   Map<Routine, String> routineStats = {};
   int completedToday = 0;
   Duration timeSpentToday = Duration.zero;
@@ -50,6 +52,8 @@ class StatsService extends ChangeNotifier {
     final Map<Routine, int> doneCounts = {for (var r in routines) r: 0};
     final Map<Routine, int> totalCounts = {for (var r in routines) r: 0};
     final Map<DateTime, double> completion = {};
+    final Map<DateTime, int> taskCounts = {};
+    final Map<DateTime, int> minuteCounts = {};
 
     completedToday = 0;
     timeSpentToday = Duration.zero;
@@ -63,6 +67,8 @@ class StatsService extends ChangeNotifier {
 
       int total = tasks.length + dayRoutines.length;
       int done = tasks.where((t) => t.isCompleted).length;
+      int minutes = 0;
+      final completedTasks = tasks.where((t) => t.isCompleted).length;
 
       for (final r in dayRoutines) {
         final d = _routineDone(r, day);
@@ -75,6 +81,9 @@ class StatsService extends ChangeNotifier {
               timeSpentToday += r.duration!;
             }
           }
+          if (r.duration != null) {
+            minutes += r.duration!.inMinutes;
+          }
         }
         if (r.weekdays.contains(day.weekday)) {
           totalCounts[r] = totalCounts[r]! + 1;
@@ -82,13 +91,18 @@ class StatsService extends ChangeNotifier {
       }
 
       if (_sameDay(day, now)) {
-        completedToday += tasks.where((t) => t.isCompleted).length;
+        completedToday += completedTasks;
       }
+
+      taskCounts[day] = completedTasks;
+      minuteCounts[day] = minutes;
 
       completion[day] = total == 0 ? 0 : done / total * 100;
     }
 
     weekly = completion;
+    tasksCompleted = taskCounts;
+    minutesSpent = minuteCounts;
     routineStats = {
       for (var r in routines) r: '${doneCounts[r]}/${totalCounts[r]}'
     };

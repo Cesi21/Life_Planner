@@ -36,6 +36,34 @@ class NotificationService {
     );
   }
 
+  int _routineId(String routineKey, DateTime date) {
+    final day = DateTime(date.year, date.month, date.day).millisecondsSinceEpoch;
+    return routineKey.hashCode ^ day.hashCode;
+  }
+
+  Future<void> scheduleRoutineTimerNotification(
+      Routine r, DateTime dateOccur, Duration duration) async {
+    final target = tz.TZDateTime.from(dateOccur.add(duration), tz.local);
+    await _plugin.zonedSchedule(
+      _routineId(r.key.toString(), dateOccur),
+      r.title,
+      'Timer complete',
+      target,
+      const NotificationDetails(
+        android: AndroidNotificationDetails('routines', 'Routines'),
+        iOS: DarwinNotificationDetails(),
+      ),
+      androidAllowWhileIdle: true,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+      matchDateTimeComponents: DateTimeComponents.time,
+    );
+  }
+
+  Future<void> cancelRoutineNotification(String routineKey, DateTime dateOccur) async {
+    await _plugin.cancel(_routineId(routineKey, dateOccur));
+  }
+
   Future<void> scheduleRoutineReminder(Routine r, DateTime nextOccur) async {}
 
   Future<void> cancelRoutineReminder(String routineKey) async {}

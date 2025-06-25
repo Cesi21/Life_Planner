@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/routine.dart';
 import '../services/routine_service.dart';
+import '../services/notification_service.dart';
 
 class RoutineTile extends StatefulWidget {
   final Routine routine;
@@ -31,6 +32,7 @@ class RoutineTile extends StatefulWidget {
 class _RoutineTileState extends State<RoutineTile> {
   Timer? _timer;
   int _remaining = 0;
+  bool _paused = false;
 
   bool get _running => _timer?.isActive ?? false;
 
@@ -52,6 +54,10 @@ class _RoutineTileState extends State<RoutineTile> {
 
   @override
   void dispose() {
+    if (_timer != null || _paused) {
+      NotificationService()
+          .cancelRoutineNotification(widget.routine.key.toString(), widget.date ?? DateTime.now());
+    }
     _timer?.cancel();
     super.dispose();
   }
@@ -59,8 +65,13 @@ class _RoutineTileState extends State<RoutineTile> {
   void _stopTimer() {
     _timer?.cancel();
     _timer = null;
+    if (widget.date != null) {
+      NotificationService()
+          .cancelRoutineNotification(widget.routine.key.toString(), widget.date!);
+    }
     setState(() {
       _remaining = 0;
+      _paused = false;
     });
   }
 
@@ -69,7 +80,16 @@ class _RoutineTileState extends State<RoutineTile> {
     if (dur == null || !_isToday) return;
     setState(() {
       _remaining = dur.inSeconds;
+      _paused = false;
     });
+    _startPeriodic();
+    if (widget.date != null) {
+      await NotificationService().scheduleRoutineTimerNotification(
+          widget.routine, widget.date!, Duration(seconds: _remaining));
+    }
+  }
+
+  void _startPeriodic() {
     _timer = Timer.periodic(const Duration(seconds: 1), (t) {
       if (_remaining <= 1) {
         t.cancel();
@@ -78,6 +98,30 @@ class _RoutineTileState extends State<RoutineTile> {
         setState(() => _remaining--);
       }
     });
+  }
+
+  void _pauseTimer() {
+    _timer?.cancel();
+    _timer = null;
+    if (widget.date != null) {
+      NotificationService()
+          .cancelRoutineNotification(widget.routine.key.toString(), widget.date!);
+    }
+    setState(() {
+      _paused = true;
+    });
+  }
+
+  Future<void> _resumeTimer() async {
+    if (_remaining <= 0) return;
+    _startPeriodic();
+    setState(() {
+      _paused = false;
+    });
+    if (widget.date != null) {
+      await NotificationService().scheduleRoutineTimerNotification(
+          widget.routine, widget.date!, Duration(seconds: _remaining));
+    }
   }
 
   Future<void> _complete() async {
@@ -111,7 +155,7 @@ class _RoutineTileState extends State<RoutineTile> {
 
   Widget _buildDays() {
     return Tooltip(
-      message: 'Green dots = days this routine is scheduled',
+      message: 'Scheduled days',
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: List.generate(7, (i) {
@@ -155,14 +199,28 @@ class _RoutineTileState extends State<RoutineTile> {
         widgets.addAll([
           _buildTimerWidget(),
           IconButton(
+            icon: const Icon(Icons.pause),
+            tooltip: 'Pause',
+            onPressed: _pauseTimer,
+          ),
+          IconButton(
             icon: const Icon(Icons.stop),
             tooltip: 'Stop',
             onPressed: _stopTimer,
           ),
+        ]);
+      } else if (_paused) {
+        widgets.addAll([
+          _buildTimerWidget(),
           IconButton(
-            icon: const Icon(Icons.check),
-            tooltip: 'Mark as done',
-            onPressed: done ? null : _manualComplete,
+            icon: const Icon(Icons.play_arrow),
+            tooltip: 'Resume',
+            onPressed: _resumeTimer,
+          ),
+          IconButton(
+            icon: const Icon(Icons.stop),
+            tooltip: 'Stop',
+            onPressed: _stopTimer,
           ),
         ]);
       } else if (_isToday) {
@@ -192,25 +250,53 @@ class _RoutineTileState extends State<RoutineTile> {
       widgets.add(
         Checkbox(
           value: done,
-          onChanged: _running || !_isToday || done
+          onChanged: _running || !_isToday
               ? null
               : (val) => widget.onCompleted?.call(val ?? false),
         ),
       );
     }
 
+    final theme = Theme.of(context);
     final baseColor = widget.showActiveSwitch
         ? null
         : Colors.purpleAccent.withOpacity(0.1);
-    return Card(
-      color: done ? Colors.grey.shade300 : baseColor,
-      child: ListTile(
-        leading: done ? const Icon(Icons.check_circle, color: Colors.green) : null,
-        title: Text(widget.routine.title),
-        subtitle: _buildDays(),
-        trailing: Row(mainAxisSize: MainAxisSize.min, children: widgets),
-        onTap: widget.onTap,
-        onLongPress: _isToday ? _reset : null,
+    final completedColor = theme.brightness == Brightness.dark
+        ? Colors.grey.shade800.withOpacity(0.3)
+        : Colors.grey.shade300;
+    final bg = done ? completedColor : baseColor;
+
+    final titleStyle = TextStyle(
+      color: done
+          ? theme.colorScheme.onSurface.withOpacity(0.6)
+          : null,
+    );
+
+    final child = ListTile(
+      leading: done ? const Icon(Icons.check_circle, color: Colors.green) : null,
+      title: Text(widget.routine.title, style: titleStyle),
+      subtitle: _buildDays(),
+      trailing: Row(mainAxisSize: MainAxisSize.min, children: widgets),
+      onTap: widget.onTap,
+      onLongPress: _isToday ? _reset : null,
+    );
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Stack(
+        alignment: Alignment.centerRight,
+        children: [
+          child,
+          if (done)
+            const Padding(
+              padding: EdgeInsets.only(right: 8),
+              child: Icon(Icons.check, color: Colors.green),
+            ),
+        ],
       ),
     );
   }
