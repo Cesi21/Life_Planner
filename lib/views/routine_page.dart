@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/routine.dart';
 import '../services/routine_service.dart';
+import '../services/tag_service.dart';
+import '../models/tag.dart';
 import '../widgets/routine_tile.dart';
 
 class RoutinePage extends StatefulWidget {
@@ -12,6 +14,7 @@ class RoutinePage extends StatefulWidget {
 
 class _RoutinePageState extends State<RoutinePage> {
   final RoutineService _service = RoutineService();
+  final TagService _tagService = TagService();
   List<Routine> _routines = [];
 
   @override
@@ -38,8 +41,10 @@ class _RoutinePageState extends State<RoutinePage> {
       ...(routine?.weekdays ?? (type == RepeatType.daily ? [1, 2, 3, 4, 5, 6, 7] : []))
     };
     bool active = routine?.isActive ?? true;
+    String? tagId = routine?.tagId;
     final durationController =
         TextEditingController(text: routine?.durationMinutes?.toString() ?? '');
+    final tags = await _tagService.getAllTags();
 
     final result = await showModalBottomSheet<String>(
       context: context,
@@ -110,6 +115,18 @@ class _RoutinePageState extends State<RoutinePage> {
                         padding: const EdgeInsets.symmetric(vertical: 8),
                         child: daySelector(),
                       ),
+                    DropdownButtonFormField<String>(
+                      value: tagId,
+                      decoration: const InputDecoration(labelText: 'Tag'),
+                      items: [
+                        const DropdownMenuItem(value: null, child: Text('None')),
+                        ...tags.map((t) => DropdownMenuItem(
+                              value: t.key.toString(),
+                              child: Text(t.name),
+                            )),
+                      ],
+                      onChanged: (val) => setModal(() => tagId = val),
+                    ),
                     TextField(
                       controller: durationController,
                       keyboardType: TextInputType.number,
@@ -188,6 +205,7 @@ class _RoutinePageState extends State<RoutinePage> {
           weekdays: list,
           isActive: active,
           durationMinutes: dur,
+          tagId: tagId,
         );
         await _service.addRoutine(r);
       } else {
@@ -196,6 +214,7 @@ class _RoutinePageState extends State<RoutinePage> {
         routine.weekdays = list;
         routine.isActive = active;
         routine.durationMinutes = dur;
+        routine.tagId = tagId;
         await _service.updateRoutine(routine);
       }
       _load();

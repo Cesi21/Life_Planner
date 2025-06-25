@@ -117,11 +117,14 @@ class RoutineService implements IRoutineService {
     await trackStreak(routineKey, date, false);
   }
 
-  Future<List<Routine>> getRoutinesForDay(DateTime day) async {
+  Future<List<Routine>> getRoutinesForDay(DateTime day, {String? tagId}) async {
     final box = await _openBox();
     final weekday = day.weekday;
     return box.values
-        .where((r) => r.isActive && r.weekdays.contains(weekday))
+        .where((r) =>
+            r.isActive &&
+            r.weekdays.contains(weekday) &&
+            (tagId == null || r.tagId == tagId))
         .toList();
   }
 
@@ -141,6 +144,15 @@ class RoutineService implements IRoutineService {
   Future<void> deleteRoutine(Routine routine) async {
     await NotificationService().cancelRoutineReminder(routine.key.toString());
     await routine.delete();
+  }
+
+  Future<void> toggleComplete(
+      Routine routine, DateTime day, bool done) async {
+    if (done) {
+      await markRoutineDone(routine.key.toString(), day);
+    } else {
+      await unmarkRoutineDone(routine.key.toString(), day);
+    }
   }
 
   @override

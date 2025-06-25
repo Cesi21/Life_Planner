@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import '../models/task.dart';
 import '../models/tag.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import '../services/tag_service.dart';
 
-class TaskTile extends StatelessWidget {
+class TaskTile extends StatefulWidget {
   final Task task;
   final ValueChanged<bool?>? onCompleted;
   final VoidCallback? onEdit;
@@ -18,49 +18,85 @@ class TaskTile extends StatelessWidget {
   });
 
   @override
+  State<TaskTile> createState() => _TaskTileState();
+}
+
+class _TaskTileState extends State<TaskTile> {
+  late ValueNotifier<bool> _done;
+
+  @override
+  void initState() {
+    super.initState();
+    _done = ValueNotifier(widget.task.isCompleted);
+  }
+
+  @override
+  void didUpdateWidget(covariant TaskTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.task.isCompleted != widget.task.isCompleted) {
+      _done.value = widget.task.isCompleted;
+    }
+  }
+
+  @override
+  void dispose() {
+    _done.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final textStyle = task.isCompleted
-        ? const TextStyle(decoration: TextDecoration.lineThrough)
-        : null;
+    final tag = widget.task.tagId == null
+        ? null
+        : TagService().getTagById(widget.task.tagId!);
     return Dismissible(
-      key: ValueKey(task.key),
-      direction: onDelete == null ? DismissDirection.none : DismissDirection.endToStart,
+      key: ValueKey(widget.task.key),
+      direction: widget.onDelete == null
+          ? DismissDirection.none
+          : DismissDirection.endToStart,
       background: Container(
         color: Colors.red,
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: const Icon(Icons.delete, color: Colors.white),
       ),
-      onDismissed: (_) => onDelete?.call(),
-      child: CheckboxListTile(
-        title: Row(
-          children: [
-            Expanded(child: Text(task.title, style: textStyle)),
-            if (task.tag != null)
-              Builder(builder: (context) {
-                final box = Hive.box<Tag>('tags');
-                final tag = box.values.firstWhere(
-                  (t) => t.name == task.tag,
-                  orElse: () => Tag(name: '', color: Colors.blue),
-                );
-                return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  margin: const EdgeInsets.only(left: 4),
-                  decoration: BoxDecoration(
-                    color: tag.color.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(8),
+      onDismissed: (_) => widget.onDelete?.call(),
+      child: ValueListenableBuilder<bool>(
+        valueListenable: _done,
+        builder: (_, done, __) {
+          final style = done
+              ? const TextStyle(decoration: TextDecoration.lineThrough)
+              : null;
+          return CheckboxListTile(
+            title: Row(
+              children: [
+                Expanded(child: Text(widget.task.title, style: style)),
+                if (tag != null)
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    margin: const EdgeInsets.only(left: 4),
+                    decoration: BoxDecoration(
+                      color: tag.color.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child:
+                        Text(tag.name, style: const TextStyle(fontSize: 12)),
                   ),
-                  child: Text(task.tag!, style: const TextStyle(fontSize: 12)),
-                );
-              }),
-            IconButton(
-              icon: const Icon(Icons.edit, size: 18),
-              onPressed: onEdit,
-            )
-          ],
-        ),
-        value: task.isCompleted,
-        onChanged: onCompleted,
+                IconButton(
+                  icon: const Icon(Icons.edit, size: 18),
+                  onPressed: widget.onEdit,
+                )
+              ],
+            ),
+            value: done,
+            onChanged: (val) async {
+              await TaskService().toggleComplete(widget.task, val ?? false);
+              _done.value = val ?? false;
+              widget.onCompleted?.call(val);
+            },
+          );
+        },
       ),
     );
   }
