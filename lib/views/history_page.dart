@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import '../models/task.dart';
-import '../models/routine.dart';
 import '../services/task_service.dart';
 import '../services/routine_service.dart';
 
@@ -100,22 +98,25 @@ class _HistoryPageState extends State<HistoryPage> {
             ],
           ),
           Expanded(
-            child: ListView(
-              children: _items.entries.map((e) {
-                final date = e.key;
-                final label = '${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][date.weekday-1]} ${date.day} ${_month(date.month)}';
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
-                    ),
-                    ...e.value,
-                    const Divider(),
-                  ],
-                );
-              }).toList(),
+            child: RefreshIndicator(
+              onRefresh: _load,
+              child: ListView(
+                children: _items.entries.map((e) {
+                  final date = e.key;
+                  final label = _dateLabel(date);
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                      ...e.value,
+                      const Divider(),
+                    ],
+                  );
+                }).toList(),
+              ),
             ),
           ),
         ],
@@ -124,4 +125,14 @@ class _HistoryPageState extends State<HistoryPage> {
   }
 
   String _month(int m) => ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m-1];
+
+  String _dateLabel(DateTime d) {
+    final today = DateTime.now();
+    final day = DateTime(today.year, today.month, today.day);
+    final target = DateTime(d.year, d.month, d.day);
+    final diff = day.difference(target).inDays;
+    if (diff == 0) return 'Today';
+    if (diff == 1) return 'Yesterday';
+    return '${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][target.weekday-1]} ${target.day} ${_month(target.month)}';
+  }
 }
