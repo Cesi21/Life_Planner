@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../models/task.dart';
 import '../services/task_service.dart';
+import "../models/routine.dart";
 import '../services/routine_service.dart';
 import '../services/notification_service.dart';
 import '../widgets/task_tile.dart';
@@ -21,6 +22,8 @@ class _CalendarPageState extends State<CalendarPage> {
   DateTime? _selectedDay;
   List<Task> _tasks = [];
   int _routineCount = 0;
+  List<Routine> _routines = [];
+  final Map<int, bool> _routineDone = {};
   String? _selectedTag;
   List<String> _availableTags = [];
 
@@ -36,6 +39,10 @@ class _CalendarPageState extends State<CalendarPage> {
     final tasks = await _service.getTasksForDay(_selectedDay!, tag: _selectedTag);
     final all = await _service.getTasksForDay(_selectedDay!);
     final routines = await _routineService.getRoutinesForDay(_selectedDay!);
+    final Map<int, bool> doneMap = {};
+    for (final r in routines) {
+      doneMap[r.key as int] = await _routineService.isCompleted(r, _selectedDay!);
+    }
     final tags = <String>{};
     for (final t in all) {
       if (t.tag != null) tags.add(t.tag!);
@@ -43,6 +50,10 @@ class _CalendarPageState extends State<CalendarPage> {
     setState(() {
       _tasks = tasks;
       _routineCount = routines.length;
+      _routines = routines;
+      _routineDone
+        ..clear()
+        ..addAll(doneMap);
       _availableTags = tags.toList();
     });
   }
@@ -141,6 +152,42 @@ class _CalendarPageState extends State<CalendarPage> {
     );
   }
 
+  Widget _buildRoutineItem(Routine r) {
+    final done = _routineDone[r.key as int] ?? false;
+    return CheckboxListTile(
+      title: Text(r.title),
+      value: done,
+      onChanged: (val) async {
+        await _routineService.markCompleted(r, _selectedDay!, val ?? false);
+        _loadData();
+      },
+    );
+  }
+
+  Future<void> _showSuggestions() async {
+    final suggestions = await _service.suggestTasks();
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Task Suggestions'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: suggestions
+              .take(3)
+              .map((t) => ListTile(title: Text(t.title)))
+              .toList(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
 
 
   @override
@@ -216,14 +263,33 @@ class _CalendarPageState extends State<CalendarPage> {
           child: ListView(
             children: [
               ..._tasks.map(_buildTaskItem),
+              if (_routines.isNotEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Text('Routines', style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ..._routines.map(_buildRoutineItem),
             ],
             ),
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _openTaskForm(),
-        child: const Icon(Icons.add),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FloatingActionButton.extended(
+            heroTag: 'suggest',
+            onPressed: _showSuggestions,
+            label: const Text('Suggest Tasks'),
+            icon: const Icon(Icons.lightbulb),
+          ),
+          const SizedBox(height: 8),
+          FloatingActionButton(
+            heroTag: 'add',
+            onPressed: () => _openTaskForm(),
+            child: const Icon(Icons.add),
+          ),
+        ],
       ),
     );
   }

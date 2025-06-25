@@ -4,8 +4,9 @@ import 'models/task.dart';
 import 'models/routine.dart';
 import 'views/calendar_page.dart';
 import 'views/routine_page.dart';
-import 'views/stats_page.dart';
+import 'views/statistics_page.dart';
 import 'views/settings_page.dart';
+import 'models/app_theme.dart';
 import 'services/notification_service.dart';
 
 Future<void> main() async {
@@ -31,15 +32,21 @@ class PlannerApp extends StatelessWidget {
     return ValueListenableBuilder(
       valueListenable: settingsBox.listenable(),
       builder: (context, box, _) {
-        final dark = box.get('darkMode', defaultValue: false) as bool;
+        final theme = AppTheme.values[box.get('theme', defaultValue: 0) as int];
+        final customTheme = ThemeData(
+          useMaterial3: true,
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+          brightness: Brightness.light,
+        );
+        final lightTheme = ThemeData(
+          useMaterial3: true,
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+          brightness: Brightness.light,
+        );
         return MaterialApp(
           title: 'Planner',
-          themeMode: dark ? ThemeMode.dark : ThemeMode.light,
-          theme: ThemeData(
-            useMaterial3: true,
-            colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
-            brightness: Brightness.light,
-          ),
+          themeMode: theme == AppTheme.dark ? ThemeMode.dark : ThemeMode.light,
+          theme: theme == AppTheme.custom ? customTheme : lightTheme,
           darkTheme: ThemeData(
             useMaterial3: true,
             colorScheme: ColorScheme.fromSeed(
@@ -67,7 +74,7 @@ class _HomePageState extends State<HomePage> {
   final List<Widget> _pages = const [
     CalendarPage(),
     RoutinePage(),
-    StatsPage(),
+    StatisticsPage(),
     SettingsPage(),
   ];
 
