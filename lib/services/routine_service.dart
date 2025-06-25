@@ -17,11 +17,11 @@ class RoutineService implements IRoutineService {
     return await Hive.openBox<Routine>(boxName);
   }
 
-  Future<Box<List>> _openCompletionBox() async {
+  Future<Box<Map>> _openCompletionBox() async {
     if (Hive.isBoxOpen(completionBox)) {
-      return Hive.box<List>(completionBox);
+      return Hive.box<Map>(completionBox);
     }
-    return await Hive.openBox<List>(completionBox);
+    return await Hive.openBox<Map>(completionBox);
   }
 
   Future<Box<Map>> _openStreakBox() async {
@@ -41,8 +41,8 @@ class RoutineService implements IRoutineService {
   Future<bool> isRoutineDone(String routineKey, DateTime date) async {
     final box = await _openCompletionBox();
     final key = _dateKey(date);
-    final list = List<String>.from(box.get(key, defaultValue: <String>[]) as List);
-    return list.contains(routineKey);
+    final map = Map<String, bool>.from(box.get(key, defaultValue: {}) as Map);
+    return map[routineKey] ?? false;
   }
 
   Future<void> trackStreak(String routineKey, DateTime date, bool completed) async {
@@ -102,18 +102,20 @@ class RoutineService implements IRoutineService {
   Future<void> markRoutineDone(String routineKey, DateTime date) async {
     final box = await _openCompletionBox();
     final key = _dateKey(date);
-    final list = List<String>.from(box.get(key, defaultValue: <String>[]) as List);
-    if (!list.contains(routineKey)) list.add(routineKey);
-    await box.put(key, list);
+    final map = Map<String, bool>.from(box.get(key, defaultValue: {}) as Map);
+    map[routineKey] = true;
+    await box.put(key, map);
     await trackStreak(routineKey, date, true);
   }
 
   Future<void> unmarkRoutineDone(String routineKey, DateTime date) async {
     final box = await _openCompletionBox();
     final key = _dateKey(date);
-    final list = List<String>.from(box.get(key, defaultValue: <String>[]) as List);
-    list.remove(routineKey);
-    await box.put(key, list);
+    final map = Map<String, bool>.from(box.get(key, defaultValue: {}) as Map);
+    if (map.containsKey(routineKey)) {
+      map[routineKey] = false;
+    }
+    await box.put(key, map);
     await trackStreak(routineKey, date, false);
   }
 

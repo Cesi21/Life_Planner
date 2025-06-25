@@ -10,6 +10,8 @@ import 'views/settings_page.dart';
 import 'views/history_page.dart';
 import 'models/app_theme.dart';
 import 'services/notification_service.dart';
+import 'services/backup_service.dart';
+import 'package:flutter/foundation.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,12 +22,23 @@ Future<void> main() async {
   Hive.registerAdapter(TagAdapter());
   await Hive.openBox<Task>('tasks');
   await Hive.openBox<Routine>('routines');
-  await Hive.openBox<List>('routine_done');
+  await Hive.openBox<Map>('routine_done');
   await Hive.openBox('routine_streaks');
   await Hive.openBox<Tag>('tags');
   await Hive.openBox('settings');
   await NotificationService().init();
   await NotificationService().rescheduleEveryMorning();
+
+  final settingsBox = Hive.box('settings');
+  final auto = settingsBox.get('autoBackup', defaultValue: false) as bool;
+  if (auto) {
+    final today = DateTime.now();
+    final key = '${today.year}-${today.month}-${today.day}';
+    if (settingsBox.get('lastBackupDate') != key) {
+      await BackupService().exportAll();
+      await settingsBox.put('lastBackupDate', key);
+    }
+  }
 
   runApp(const PlannerApp());
 }

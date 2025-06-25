@@ -6,7 +6,7 @@ import '../models/routine.dart';
 class StatsService extends ChangeNotifier {
   late final Box<Task> _taskBox;
   late final Box<Routine> _routineBox;
-  late final Box<List> _completionBox;
+  late final Box<Map> _completionBox;
 
   late final ValueListenable _taskListenable;
   late final ValueListenable _routineListenable;
@@ -22,7 +22,7 @@ class StatsService extends ChangeNotifier {
   StatsService() {
     _taskBox = Hive.box<Task>('tasks');
     _routineBox = Hive.box<Routine>('routines');
-    _completionBox = Hive.box<List>('routine_done');
+    _completionBox = Hive.box<Map>('routine_done');
 
     _taskListenable = _taskBox.listenable();
     _routineListenable = _routineBox.listenable();
@@ -40,9 +40,9 @@ class StatsService extends ChangeNotifier {
 
   bool _routineDone(Routine r, DateTime date) {
     final key = DateTime(date.year, date.month, date.day).toIso8601String();
-    final list = List<String>.from(
-        _completionBox.get(key, defaultValue: <String>[]) as List);
-    return list.contains(r.key.toString());
+    final map =
+        Map<String, bool>.from(_completionBox.get(key, defaultValue: {}) as Map);
+    return map[r.key.toString()] ?? false;
   }
 
   void _calculate() {

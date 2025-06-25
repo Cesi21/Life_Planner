@@ -4,8 +4,9 @@ import '../models/app_theme.dart';
 import '../models/tag.dart';
 import '../services/backup_service.dart';
 import '../services/tag_service.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:file_picker/file_picker.dart';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -18,12 +19,14 @@ class _SettingsPageState extends State<SettingsPage> {
   AppTheme _theme = AppTheme.system;
   final TagService _tagService = TagService();
   List<Tag> _tags = [];
+  bool _autoBackup = false;
 
   @override
   void initState() {
     super.initState();
     final box = Hive.box('settings');
     _theme = AppTheme.values[box.get('theme', defaultValue: 0) as int];
+    _autoBackup = box.get('autoBackup', defaultValue: false) as bool;
     _loadTags();
   }
 
@@ -36,6 +39,12 @@ class _SettingsPageState extends State<SettingsPage> {
   void _loadTags() async {
     _tags = await _tagService.getAllTags();
     setState(() {});
+  }
+
+  Future<void> _setAutoBackup(bool val) async {
+    final box = Hive.box('settings');
+    await box.put('autoBackup', val);
+    setState(() => _autoBackup = val);
   }
 
   Future<void> _addTag() async {
@@ -154,30 +163,60 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _export() async {
-    final backup = await BackupService().exportAll();
-    final dir = await getDownloadsDirectory();
-    if (dir != null) {
-      final file = File('${dir.path}/planner_backup.json');
-      await file.writeAsString(backup);
+    if (kIsWeb) {
+      await showDialog(
+        context: context,
+        builder: (_) => const AlertDialog(
+          content: Text('Not supported on web'),
+        ),
+      );
+      return;
+    }
+    try {
+      final path = await BackupService().exportAll();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Exported to ${file.path}')),
+          SnackBar(content: Text('Exported to $path')),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Export failed')),
         );
       }
     }
   }
 
   Future<void> _import() async {
-    final dir = await getDownloadsDirectory();
-    if (dir == null) return;
-    final file = File('${dir.path}/planner_backup.json');
-    if (await file.exists()) {
-      final content = await file.readAsString();
-      await BackupService().importAll(content);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Import complete')), 
-        );
+    if (kIsWeb) {
+      await showDialog(
+        context: context,
+        builder: (_) => const AlertDialog(
+          content: Text('Not supported on web'),
+        ),
+      );
+      return;
+    }
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['json'],
+    );
+    if (result != null && result.files.single.path != null) {
+      final file = File(result.files.single.path!);
+      try {
+        await BackupService().importAll(file);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Import complete')),
+          );
+        }
+      } catch (_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Import failed')),
+          );
+        }
       }
     }
   }
@@ -232,6 +271,12 @@ class _SettingsPageState extends State<SettingsPage> {
                   ],
                 ),
               )),
+          const Divider(),
+          SwitchListTile(
+            title: const Text('Daily auto-backup'),
+            value: _autoBackup,
+            onChanged: _setAutoBackup,
+          ),
           const Divider(),
           ListTile(
             title: const Text('Export to file'),
