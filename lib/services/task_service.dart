@@ -35,13 +35,4 @@ class TaskService implements ITaskService {
   Future<void> deleteTask(Task task) async {
     await task.delete();
   }
-
-  @override
-  Future<List<Task>> suggestTasks() async {
-    return [
-      Task(title: 'Suggested Task 1', date: DateTime.now()),
-      Task(title: 'Suggested Task 2', date: DateTime.now()),
-      Task(title: 'Suggested Task 3', date: DateTime.now()),
-    ];
-  }
 }
