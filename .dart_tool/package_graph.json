@@ -8,6 +8,7 @@
       "version": "1.0.0+1",
       "dependencies": [
         "cupertino_icons",
+        "file_picker",
         "fl_chart",
         "flutter",
         "flutter_local_notifications",
@@ -184,11 +185,6 @@
       ]
     },
     {
-      "name": "vm_service",
-      "version": "15.0.0",
-      "dependencies": []
-    },
-    {
       "name": "vector_math",
       "version": "2.1.4",
       "dependencies": []
@@ -249,11 +245,6 @@
       ]
     },
     {
-      "name": "path",
-      "version": "1.9.1",
-      "dependencies": []
-    },
-    {
       "name": "meta",
       "version": "1.16.0",
       "dependencies": []
@@ -308,40 +299,6 @@
       ]
     },
     {
-      "name": "flutter_driver",
-      "version": "0.0.0",
-      "dependencies": [
-        "async",
-        "boolean_selector",
-        "characters",
-        "clock",
-        "collection",
-        "file",
-        "flutter",
-        "flutter_test",
-        "fuchsia_remote_debug_protocol",
-        "leak_tracker",
-        "leak_tracker_flutter_testing",
-        "leak_tracker_testing",
-        "matcher",
-        "material_color_utilities",
-        "meta",
-        "path",
-        "platform",
-        "process",
-        "source_span",
-        "stack_trace",
-        "stream_channel",
-        "string_scanner",
-        "sync_http",
-        "term_glyph",
-        "test_api",
-        "vector_math",
-        "vm_service",
-        "webdriver"
-      ]
-    },
-    {
       "name": "file",
       "version": "7.0.1",
       "dependencies": [
@@ -386,6 +343,50 @@
       "dependencies": [
         "collection",
         "meta"
+      ]
+    },
+    {
+      "name": "vm_service",
+      "version": "15.0.0",
+      "dependencies": []
+    },
+    {
+      "name": "path",
+      "version": "1.9.1",
+      "dependencies": []
+    },
+    {
+      "name": "flutter_driver",
+      "version": "0.0.0",
+      "dependencies": [
+        "async",
+        "boolean_selector",
+        "characters",
+        "clock",
+        "collection",
+        "file",
+        "flutter",
+        "flutter_test",
+        "fuchsia_remote_debug_protocol",
+        "leak_tracker",
+        "leak_tracker_flutter_testing",
+        "leak_tracker_testing",
+        "matcher",
+        "material_color_utilities",
+        "meta",
+        "path",
+        "platform",
+        "process",
+        "source_span",
+        "stack_trace",
+        "stream_channel",
+        "string_scanner",
+        "sync_http",
+        "term_glyph",
+        "test_api",
+        "vector_math",
+        "vm_service",
+        "webdriver"
       ]
     },
     {
@@ -578,6 +579,45 @@
       "dependencies": [
         "collection",
         "meta"
+      ]
+    },
+    {
+      "name": "file_picker",
+      "version": "6.2.1",
+      "dependencies": [
+        "ffi",
+        "flutter",
+        "flutter_plugin_android_lifecycle",
+        "flutter_web_plugins",
+        "path",
+        "plugin_platform_interface",
+        "win32"
+      ]
+    },
+    {
+      "name": "flutter_web_plugins",
+      "version": "0.0.0",
+      "dependencies": [
+        "characters",
+        "collection",
+        "flutter",
+        "material_color_utilities",
+        "meta",
+        "vector_math"
+      ]
+    },
+    {
+      "name": "flutter_plugin_android_lifecycle",
+      "version": "2.0.28",
+      "dependencies": [
+        "flutter"
+      ]
+    },
+    {
+      "name": "win32",
+      "version": "5.14.0",
+      "dependencies": [
+        "ffi"
       ]
     }
   ],
