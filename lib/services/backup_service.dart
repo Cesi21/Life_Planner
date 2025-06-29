@@ -1,5 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:html' as html;
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
@@ -47,13 +51,39 @@ class BackupService {
       }).toList(),
       'streaks': streakBox.toMap(),
     };
-    final file = File(await _filePath());
-    await file.writeAsString(jsonEncode(data));
-    return file.path;
+    final jsonStr = jsonEncode(data);
+    if (kIsWeb) {
+      final encoded = base64Encode(utf8.encode(jsonStr));
+      final now = DateTime.now();
+      final name =
+          'backup_${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}.json';
+      final anchor = html.AnchorElement(
+          href: 'data:application/json;base64,$encoded')
+        ..download = name
+        ..target = 'blank';
+      html.document.body!.append(anchor);
+      anchor.click();
+      anchor.remove();
+      return name;
+    } else {
+      final file = File(await _filePath());
+      await file.writeAsString(jsonStr);
+      return file.path;
+    }
   }
 
-  Future<void> importAll(File file) async {
-    final content = await file.readAsString();
+  Future<void> importAll(dynamic fileOrBytes) async {
+    String content;
+    if (kIsWeb) {
+      if (fileOrBytes is Uint8List) {
+        content = utf8.decode(fileOrBytes);
+      } else {
+        return;
+      }
+    } else {
+      final file = fileOrBytes as File;
+      content = await file.readAsString();
+    }
     final data = jsonDecode(content);
     final taskBox = Hive.box<Task>('tasks');
     final routineBox = Hive.box<Routine>('routines');

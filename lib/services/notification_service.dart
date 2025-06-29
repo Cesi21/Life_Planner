@@ -1,6 +1,7 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../models/task.dart';
 import '../models/routine.dart';
 import '../services/task_service.dart';
@@ -16,6 +17,7 @@ class NotificationService {
   final RoutineService _routineSvc = RoutineService();
 
   Future<void> init() async {
+    if (kIsWeb) return;
     const AndroidInitializationSettings androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
     const DarwinInitializationSettings iosSettings = DarwinInitializationSettings();
     const InitializationSettings settings = InitializationSettings(android: androidSettings, iOS: iosSettings);
@@ -24,7 +26,7 @@ class NotificationService {
   }
 
   Future<int> scheduleTaskReminder(Task task) async {
-    if (task.reminderMinutes == null) return 0;
+    if (kIsWeb || task.reminderMinutes == null) return 0;
     final date = DateTime(task.date.year, task.date.month, task.date.day)
         .add(Duration(minutes: task.reminderMinutes!));
     final tz.TZDateTime tzDate = tz.TZDateTime.from(date, tz.local);
@@ -53,6 +55,7 @@ class NotificationService {
 
   Future<void> scheduleRoutineTimerNotification(
       Routine r, DateTime dateOccur, Duration duration) async {
+    if (kIsWeb) return;
     final target = tz.TZDateTime.from(dateOccur.add(duration), tz.local);
     await _plugin.zonedSchedule(
       _routineId(r.key.toString(), dateOccur),
@@ -71,15 +74,17 @@ class NotificationService {
   }
 
   Future<void> cancelRoutineNotification(String routineKey, DateTime dateOccur) async {
+    if (kIsWeb) return;
     await _plugin.cancel(_routineId(routineKey, dateOccur));
   }
 
   Future<void> cancelNotification(int id) async {
+    if (kIsWeb) return;
     await _plugin.cancel(id);
   }
 
   Future<void> scheduleRoutineReminder(Routine r, DateTime nextOccur) async {
-    if (r.timeMinutes == null) return;
+    if (kIsWeb || r.timeMinutes == null) return;
     final date = DateTime(nextOccur.year, nextOccur.month, nextOccur.day)
         .add(Duration(minutes: r.timeMinutes!));
     final tzDate = tz.TZDateTime.from(date, tz.local);
@@ -100,6 +105,7 @@ class NotificationService {
   }
 
   Future<void> cancelRoutineReminder(String routineKey) async {
+    if (kIsWeb) return;
     await _plugin.cancel(routineKey.hashCode);
   }
 

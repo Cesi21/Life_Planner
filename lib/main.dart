@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'models/task.dart';
 import 'models/routine.dart';
 import 'models/tag.dart';
@@ -16,15 +17,16 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
   Hive.registerAdapter(TaskAdapter());
-  Hive.registerAdapter(RepeatTypeAdapter());
   Hive.registerAdapter(RoutineAdapter());
   Hive.registerAdapter(TagAdapter());
-  await Hive.openBox<Task>('tasks');
-  await Hive.openBox<Routine>('routines');
-  await Hive.openBox<Map>('routine_done');
-  await Hive.openBox('routine_streaks');
-  await Hive.openBox<Tag>('tags');
-  await Hive.openBox('settings');
+  await Future.wait([
+    Hive.openBox<Task>('tasks'),
+    Hive.openBox<Routine>('routines'),
+    Hive.openBox<Map>('routine_done'),
+    Hive.openBox<Tag>('tags'),
+    Hive.openBox<Map>('routine_streaks'),
+    Hive.openBox('settings'),
+  ]);
   await NotificationService().init();
   await NotificationService().rescheduleEveryMorning();
 
