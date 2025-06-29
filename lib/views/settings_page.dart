@@ -6,7 +6,7 @@ import '../services/backup_service.dart';
 import '../services/tag_service.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -163,18 +163,9 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _export() async {
-    if (kIsWeb) {
-      await showDialog(
-        context: context,
-        builder: (_) => const AlertDialog(
-          content: Text('Not supported on web'),
-        ),
-      );
-      return;
-    }
     try {
       final path = await BackupService().exportAll();
-      if (mounted) {
+      if (!kIsWeb && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Exported to $path')),
         );
@@ -189,23 +180,25 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _import() async {
-    if (kIsWeb) {
-      await showDialog(
-        context: context,
-        builder: (_) => const AlertDialog(
-          content: Text('Not supported on web'),
-        ),
-      );
-      return;
-    }
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['json'],
     );
-    if (result != null && result.files.single.path != null) {
-      final file = File(result.files.single.path!);
+    if (result != null) {
       try {
-        await BackupService().importAll(file);
+        if (kIsWeb) {
+          final bytes = result.files.single.bytes;
+          if (bytes != null) {
+            await BackupService().importAll(bytes);
+          } else {
+            return;
+          }
+        } else if (result.files.single.path != null) {
+          final file = File(result.files.single.path!);
+          await BackupService().importAll(file);
+        } else {
+          return;
+        }
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Import complete')),
@@ -272,11 +265,12 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
               )),
           const Divider(),
-          SwitchListTile(
-            title: const Text('Daily auto-backup'),
-            value: _autoBackup,
-            onChanged: _setAutoBackup,
-          ),
+          if (!kIsWeb)
+            SwitchListTile(
+              title: const Text('Daily auto-backup'),
+              value: _autoBackup,
+              onChanged: _setAutoBackup,
+            ),
           const Divider(),
           ListTile(
             title: const Text('Export to file'),
