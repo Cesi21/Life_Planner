@@ -11,7 +11,6 @@ import 'views/history_page.dart';
 import 'models/app_theme.dart';
 import 'services/notification_service.dart';
 import 'services/backup_service.dart';
-import 'package:flutter/foundation.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
